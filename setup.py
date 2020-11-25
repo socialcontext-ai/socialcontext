@@ -83,6 +83,7 @@ setup(
     install_requires=[
         'requests-oauthlib',
         'python-dotenv',
+        'pydantic',
         'rich',
         'typer',
     ],
