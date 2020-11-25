@@ -18,7 +18,8 @@ def token_saver(token):
 
 class SocialcontextClient():
 
-    API_ROOT = 'http://localhost:8000'
+    #API_ROOT = 'http://localhost:8000'
+    API_ROOT = 'http://ec2-100-26-141-188.compute-1.amazonaws.com:8000'
     VER = {
         'v1.a': f'{API_ROOT}/v1.a',
         'v0.1': f'{API_ROOT}/v0.1',
@@ -53,7 +54,7 @@ class SocialcontextClient():
         q = urllib.parse.urlencode(query)
         return self.client.get(f'{url}?{q}')
 
-    def post(self, url, **data):
+    def post(self, url, data=None):
         return self.client.post(url, json=data)
 
     def pathget(self, path, version, **query):
@@ -61,10 +62,10 @@ class SocialcontextClient():
         url = f'{v}/{path}'
         return self.get(url, **query) 
 
-    def pathpost(self, path, version, **data):
+    def pathpost(self, path, version, data=None):
         v = self.VER[version]
         url = f'{v}/{path}'
-        return self.post(url, **data)
+        return self.post(url, data=data)
 
     def classify(self, *, url=None, text=None, version='v1.a'):
         if url:
@@ -75,9 +76,9 @@ class SocialcontextClient():
             content = text
         else:
             raise InvalidRequest('url or text parameter required')
-        r = self.pathpost('news/classify', version, **{
+        r = self.pathpost('news/classify', version, data={
             reqtype: content,
-            'models': ['diversity']
+            'models': ['diversity', 'vice', 'crime_injury_military']
         })
         if r.status_code == 403:
             raise Unauthorized
