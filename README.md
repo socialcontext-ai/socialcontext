@@ -14,7 +14,7 @@ Client library for the socialcontext.ai web API
 
 ```
 >>> from socialcontext.api import SocialcontextClient
->>> client = SocialcontextClient()
+>>> client = SocialcontextClient(APPLICATION_ID, APPLICATION_SECRET)
 ```
 
 
