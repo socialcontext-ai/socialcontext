@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import typer
@@ -13,10 +14,24 @@ app = typer.Typer()
 client = SocialcontextClient(app_id, app_secret)
 
 
+def output(data, *, filename=None, indent=4):
+    if filename is None:
+        s = json.dumps(data, indent=indent, ensure_ascii=False).encode('utf-8')
+        print(s.decode())
+    if filename is not None:
+        with open(filename, 'w', encoding='utf8') as f:
+            json.dump(data, f, indent=indent, ensure_ascii=False)
+     
+
 @app.command()
 def version():
     typer.echo(VERSION)
 
+
+@app.command()
+def openapi():
+    r = client.openapi()
+    output(r.json())
 
 
 @app.command()
@@ -32,13 +47,35 @@ def classify(
         typer.echo(typer.style("Either url or text is required.",
             fg=typer.colors.RED, bold=True))
         raise typer.Exit()
-    # If you are writing to a file, just use json.dump() and leave it to the file object to encode:
-    # with open('filename', 'w', encoding='utf8') as json_file:
-    #     json.dump("ברי צקלה", json_file, ensure_ascii=False)
-    s = json.dumps(r.json(), indent=4, ensure_ascii=False).encode('utf-8')
-    print(s.decode())
+    output(r.json())
 
 
+### Stress test. Internal use only
+
+from concurrent.futures import ThreadPoolExecutor
+
+def do_classify(text):
+    import time
+    start = time.time() 
+    r = client.classify(text=text)
+    output(r.json())
+    duration = round(time.time() - start, 2)
+    print(f'Fetched 1 in {duration} seconds')
+
+
+@app.command()
+def stress():
+    """Stress test the API."""
+    import time
+    start = time.time()
+    with open('tolstoy.txt') as f:
+        texts = f.read().split('\n\n')
+        texts = [t.strip() for t in texts if t.strip()]
+    with ThreadPoolExecutor() as executor:
+        fn = do_classify
+        executor.map(do_classify, texts)
+    duration = round(time.time() - start, 2)
+    print(f'Completed classifying all paragraphs of War and Peace in {duration} seconds.')
 
 
 def run():
