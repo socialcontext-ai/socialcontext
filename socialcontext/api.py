@@ -65,7 +65,7 @@ class APIClient():
         'v0.1a': f'{API_ROOT}/v0.1a',
         'v0.1': f'{API_ROOT}/v0.1',
     }
-    TOKEN_URL = f'{VER["v0.1a"]}/token'
+    TOKEN_URL = f'{VER["v0.1"]}/token'
     REFRESH_URL = f'{VER["v0.1"]}/token-refresh'
 
     def __init__(self, app_id, app_secret):
