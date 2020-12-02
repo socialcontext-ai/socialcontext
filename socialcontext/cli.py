@@ -1,17 +1,46 @@
+from enum import Enum
+from typing import List, Optional
 import asyncio
 import json
 import os
 import typer
 from .api import SocialcontextClient
 
-VERSION = '0.1.0'
+VERSION = '1.a'
 
 
 app_id = os.environ['SOCIALCONTEXT_APP_ID']
 app_secret = os.environ['SOCIALCONTEXT_APP_SECRET']
 
 app = typer.Typer()
-client = SocialcontextClient(app_id, app_secret)
+
+_client = None
+def client():
+    global _client
+    if _client is None:
+        _client = SocialcontextClient(app_id, app_secret)
+    return _client
+
+
+class ContentTypes(str, Enum):
+    news = 'news'
+
+
+class Models(str, Enum):
+    crime_violence = 'crime_violence'
+    diversity = 'diversity'
+    injuries = 'injuries'
+    military = 'military'
+    political = 'political'
+    profanity = 'profanity'
+    sexually_explicit = 'sexually_explicit'
+    vice = 'vice'
+
+
+def complete_content_type(incomplete: str):
+    for name in ContentTypes:
+        if name.startswith(incomplete):
+            yield (name, help_text)
 
 
 def output(data, *, filename=None, indent=4):
@@ -25,24 +54,32 @@ def output(data, *, filename=None, indent=4):
 
 @app.command()
 def version():
+    """Get the API verson."""
     typer.echo(VERSION)
 
 
 @app.command()
 def openapi():
-    r = client.openapi()
+    """Get the openapi specification."""
+    r = client().openapi()
     output(r.json())
 
 
 @app.command()
 def classify(
+    content_type: ContentTypes=typer.Argument(..., help="Content type", autocompletion=complete_content_type),
     url: str = typer.Option("", help="Web URL to classify"),
-    text: str = typer.Option("", help="Text to classify")
+    text: str = typer.Option("", help="Text to classify"),
+    models: List[Models] = typer.Argument(..., help="classification models")
 ):
+    """Classify provided text or text extracted from a provided URL.
+
+    One of either --url or --text must be provided.
+    """
     if url:
-        r = client.classify(url=url)
+        r = client().classify(content_type, models=models, url=url)
     elif text:
-        r = client.classify(text=text)
+        r = client().classify('news', models=models, text=text)
     else:
         typer.echo(typer.style("Either url or text is required.",
             fg=typer.colors.RED, bold=True))
@@ -57,7 +94,7 @@ from concurrent.futures import ThreadPoolExecutor
 def do_classify(text):
     import time
     start = time.time() 
-    r = client.classify(text=text)
+    r = client().classify(text=text)
     output(r.json())
     duration = round(time.time() - start, 2)
     print(f'Fetched 1 in {duration} seconds')

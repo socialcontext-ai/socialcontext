@@ -1,5 +1,6 @@
 import urllib
 import requests
+from functools import partial
 from oauthlib.oauth2 import BackendApplicationClient
 from oauthlib.oauth2.rfc6749.errors import MissingTokenError
 from requests_oauthlib import OAuth2Session
@@ -16,7 +17,45 @@ def token_saver(token):
     print('SAVING TOKEN:', token)
 
 
-class SocialcontextClient():
+all_models = [
+    'crime_violence',
+    'diversity',
+    'injuries',
+    'military',
+    'political',
+    'profanity',
+    'sexually_explicit',
+    'vice',
+]
+
+
+class Classifier:
+
+    def __init__(self, client, namespace):
+        self.client = client
+        self.namespace = namespace
+
+    def classify(self, *, url=None, text=None, models=None, version='v1.a'):
+        if url:
+            reqtype = 'url'
+            content = url
+        elif text:
+            reqtype = 'text'
+            content = text
+        else:
+            raise InvalidRequest('url or text parameter required')
+        if models is None:
+            models = all_models
+        r = self.client.pathpost(f'{self.namespace}/classify', version, data={
+            reqtype: content,
+            'models': models
+        })
+        if r.status_code == 403:
+            raise Unauthorized
+        return r
+
+
+class APIClient():
 
     API_ROOT = 'http://localhost:8000'
     #API_ROOT = 'https://beta.socialcontext.ai'
@@ -65,33 +104,56 @@ class SocialcontextClient():
         return self.get(url, **query) 
 
     def pathpost(self, path, version='', data=None):
+        print('VER', self.VER)
+        print('version', version)
         v = self.VER[version]
         url = f'{v}/{path}'
         return self.post(url, data=data)
 
+
+    #def classify(self, content_type, *, url=None, text=None, version='v1.a'):
+    #    if url:
+    #        reqtype = 'url'
+    #        content = url
+    #    elif text:
+    #        reqtype = 'text'
+    #        content = text
+    #    else:
+    #        raise InvalidRequest('url or text parameter required')
+    #    r = self.pathpost(f'{content_type}/classify', version, data={
+    #        reqtype: content,
+    #        'models': [
+    #            'diversity',
+    #            'vice',
+    #            'political',
+    #            'crime_violence',
+    #            'injuries',
+    #            'military',
+    #            'profanity',
+    #            'sexually_explicit'
+    #        ]
+    #    })
+    #    if r.status_code == 403:
+    #        raise Unauthorized
+    #    return r
+
+    #news = type('news', (object,), {
+    #    'classify': partialmethod(classify, 'news') })
+    #news = Classifier()
+
+class SocialcontextClient():
+
+    def __init__(self, app_id, app_secret):
+        self.api = APIClient(app_id, app_secret)
+        self.classifiers = {
+            'news': Classifier(self.api, 'news')
+        }
+        self.news = self.classifiers['news']
+
+    def classify(self, content_type, **kwargs):
+        return self.classifiers[content_type].classify(**kwargs)
+
     def openapi(self):
         """Returns the openapi spec."""
-        return self.pathget('docs/openapi.json')
+        return self.api.pathget('docs/openapi.json')
 
-    def classify(self, *, url=None, text=None, version='v1.a'):
-        if url:
-            reqtype = 'url'
-            content = url
-        elif text:
-            reqtype = 'text'
-            content = text
-        else:
-            raise InvalidRequest('url or text parameter required')
-        r = self.pathpost('news/classify', version, data={
-            reqtype: content,
-            'models': [
-                'diversity',
-                'vice',
-                'crime_violence',
-                'injuries',
-                'military'
-            ]
-        })
-        if r.status_code == 403:
-            raise Unauthorized
-        return r
