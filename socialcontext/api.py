@@ -29,33 +29,7 @@ all_models = [
 ]
 
 
-class Classifier:
-
-    def __init__(self, client, namespace):
-        self.client = client
-        self.namespace = namespace
-
-    def classify(self, *, url=None, text=None, models=None, version='v0.1a'):
-        if url:
-            reqtype = 'url'
-            content = url
-        elif text:
-            reqtype = 'text'
-            content = text
-        else:
-            raise InvalidRequest('url or text parameter required')
-        if models is None:
-            models = all_models
-        r = self.client.pathpost(f'{self.namespace}/classify', version, data={
-            reqtype: content,
-            'models': models
-        })
-        if r.status_code == 403:
-            raise Unauthorized
-        return r
-
-
-class APIClient():
+class SocialcontextClient():
 
     API_ROOT = 'http://localhost:8000'
     #API_ROOT = 'https://beta.socialcontext.ai'
@@ -67,6 +41,7 @@ class APIClient():
     }
     TOKEN_URL = f'{VER["v0.1"]}/token'
     REFRESH_URL = f'{VER["v0.1"]}/token-refresh'
+    _news = None
 
     def __init__(self, app_id, app_secret):
         self.app_id = app_id
@@ -110,50 +85,26 @@ class APIClient():
         url = f'{v}/{path}'
         return self.post(url, data=data)
 
+    def classify(self, content_type, *, models=None, url=None, text=None, version='v0.1a'):
+        if url:
+            reqtype = 'url'
+            content = url
+        elif text:
+            reqtype = 'text'
+            content = text
+        else:
+            raise InvalidRequest('url or text parameter required')
+        r = self.pathpost(f'{content_type}/classify', version, data={
+            reqtype: content, 'models': models
+        })
+        if r.status_code == 403:
+            raise Unauthorized
+        return r
 
-    #def classify(self, content_type, *, url=None, text=None, version='v1.a'):
-    #    if url:
-    #        reqtype = 'url'
-    #        content = url
-    #    elif text:
-    #        reqtype = 'text'
-    #        content = text
-    #    else:
-    #        raise InvalidRequest('url or text parameter required')
-    #    r = self.pathpost(f'{content_type}/classify', version, data={
-    #        reqtype: content,
-    #        'models': [
-    #            'diversity',
-    #            'vice',
-    #            'political',
-    #            'crime_violence',
-    #            'injuries',
-    #            'military',
-    #            'profanity',
-    #            'sexually_explicit'
-    #        ]
-    #    })
-    #    if r.status_code == 403:
-    #        raise Unauthorized
-    #    return r
-
-    #news = type('news', (object,), {
-    #    'classify': partialmethod(classify, 'news') })
-    #news = Classifier()
-
-class SocialcontextClient():
-
-    def __init__(self, app_id, app_secret):
-        self.api = APIClient(app_id, app_secret)
-        self.classifiers = {
-            'news': Classifier(self.api, 'news')
-        }
-        self.news = self.classifiers['news']
-
-    def classify(self, content_type, **kwargs):
-        return self.classifiers[content_type].classify(**kwargs)
-
-    def openapi(self):
-        """Returns the openapi spec."""
-        return self.api.pathget('docs/openapi.json')
-
+    @property
+    def news(self):
+        if self._news is None:
+            self._news = type('news', (object,), {
+                'classify': partial(self.classify, 'news')
+            })
+        return self._news()

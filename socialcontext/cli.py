@@ -79,7 +79,7 @@ def classify(
     if url:
         r = client().classify(content_type, models=models, url=url)
     elif text:
-        r = client().classify('news', models=models, text=text)
+        r = client().classify(content_type, models=models, text=text)
     else:
         typer.echo(typer.style("Either url or text is required.",
             fg=typer.colors.RED, bold=True))
