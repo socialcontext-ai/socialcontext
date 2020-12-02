@@ -6,7 +6,7 @@ import os
 import typer
 from .api import SocialcontextClient
 
-VERSION = '1.a'
+VERSION = 'v0.1a'
 
 
 app_id = os.environ['SOCIALCONTEXT_APP_ID']
