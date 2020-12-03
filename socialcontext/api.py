@@ -85,25 +85,28 @@ class SocialcontextClient():
             auto_refresh_kwargs={},
             token_updater=self.token_saver)
 
+    def fernet(self, key):
+        _key = key + "=" * (len(key) % 4)
+        _key = base64.urlsafe_b64encode(base64.urlsafe_b64decode(_key))
+        return Fernet(_key)
+
+    def encrypt(self, data):
+        return self.fernet(self.app_secret).encrypt(data.encode())
+
+    def decrypt(self, data):
+        return self.fernet(self.app_secret).decrypt(data)
+
     def token_saver(self, token):
         logger.debug('SAVING TOKEN: %s' % str(token))
-        code = bytearray(self.app_secret, 'utf8')[:32]
-        code = base64.urlsafe_b64encode(code)
         data = json.dumps(token)
-        data = data.encode()
-        f = Fernet(code)
-        _t = f.encrypt(data)
-        decrypted = json.loads(f.decrypt(_t))
+        _t = self.encrypt(data)
         with dbm.open(KEY_DB.as_posix(), 'c') as db:
             db[self.app_id] = _t
 
     def load_saved_token(self):
         with dbm.open(KEY_DB.as_posix(), 'c') as db:
             token = db[self.app_id]
-        code = bytearray(self.app_secret, 'utf8')[:32]
-        code = base64.urlsafe_b64encode(code)
-        f = Fernet(code)
-        token = json.loads(f.decrypt(token))
+        token = json.loads(self.decrypt(token))
         return token
 
     def clear_saved_token(self):
