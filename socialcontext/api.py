@@ -1,10 +1,11 @@
 import base64
-import codecs
 import dbm
 import json
+import logging
 import urllib
 import oauthlib
 import requests
+import sys
 from pathlib import Path
 from cryptography.fernet import Fernet
 from functools import partial
@@ -12,6 +13,9 @@ from oauthlib.oauth2 import BackendApplicationClient
 from oauthlib.oauth2.rfc6749.errors import MissingTokenError
 from requests_oauthlib import OAuth2Session
 
+logger = logging.getLogger('socialcontext')
+logger.addHandler(logging.StreamHandler(sys.stdout))
+logger.setLevel(logging.INFO)
 
 class InvalidRequest(Exception):
     ...
@@ -20,7 +24,6 @@ class Unauthorized(Exception):
     ...
 
 KEY_DB = Path(__file__).parent / 'key'
-print('DB', KEY_DB)
 
 
 all_models = [
@@ -83,8 +86,7 @@ class SocialcontextClient():
             token_updater=self.token_saver)
 
     def token_saver(self, token):
-        print('--- SAVING TOKEN ---')
-        print(token)
+        logger.debug('SAVING TOKEN: %s' % str(token))
         code = bytearray(self.app_secret, 'utf8')[:32]
         code = base64.urlsafe_b64encode(code)
         data = json.dumps(token)
@@ -92,19 +94,16 @@ class SocialcontextClient():
         f = Fernet(code)
         _t = f.encrypt(data)
         decrypted = json.loads(f.decrypt(_t))
-        print(Path(__file__).parent)
         with dbm.open(KEY_DB.as_posix(), 'c') as db:
             db[self.app_id] = _t
 
     def load_saved_token(self):
         with dbm.open(KEY_DB.as_posix(), 'c') as db:
             token = db[self.app_id]
-        print('TOKEN::', token)
         code = bytearray(self.app_secret, 'utf8')[:32]
         code = base64.urlsafe_b64encode(code)
         f = Fernet(code)
         token = json.loads(f.decrypt(token))
-        print('TOKEN::', token)
         return token
 
     def clear_saved_token(self):
@@ -122,10 +121,8 @@ class SocialcontextClient():
             else:
                 raise Exception('Unsupported dispatch method')
         except oauthlib.oauth2.rfc6749.errors.MissingTokenError:
-            print('WEELL AINT THAT SOMETHING')
-            #clear_saved_token(self.app_id)
+            logger.error('API Token error. Attempting to re-create client')
             self.clear_saved_token()
-            print('TRY AGAIN')
             token = self.fetch_api_token()
             self.token_saver(token)
             self.client = self.create_client_for_token(token)
