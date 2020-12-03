@@ -18,6 +18,7 @@ _client = None
 def client():
     global _client
     if _client is None:
+        print('instantiating new client')
         _client = SocialcontextClient(app_id, app_secret)
     return _client
 
@@ -94,23 +95,26 @@ from concurrent.futures import ThreadPoolExecutor
 def do_classify(text):
     import time
     start = time.time() 
-    r = client().classify(text=text)
+    r = client().news.classify(models=['vice', 'diversity'], text=text)
     output(r.json())
     duration = round(time.time() - start, 2)
     print(f'Fetched 1 in {duration} seconds')
 
 
 @app.command()
-def stress():
+def stress(filename:str):
     """Stress test the API."""
     import time
     start = time.time()
-    with open('tolstoy.txt') as f:
+    with open(filename) as f:
         texts = f.read().split('\n\n')
         texts = [t.strip() for t in texts if t.strip()]
-    with ThreadPoolExecutor() as executor:
-        fn = do_classify
-        executor.map(do_classify, texts)
+    #with ThreadPoolExecutor(max_workers=3) as executor:
+    #    fn = do_classify
+    #    executor.map(do_classify, texts)
+    for text in texts:
+        do_classify(text)
+        time.sleep(5)
     duration = round(time.time() - start, 2)
     print(f'Completed classifying all paragraphs of War and Peace in {duration} seconds.')
 

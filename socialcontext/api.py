@@ -1,5 +1,12 @@
+import base64
+import codecs
+import dbm
+import json
 import urllib
+import oauthlib
 import requests
+from pathlib import Path
+from cryptography.fernet import Fernet
 from functools import partial
 from oauthlib.oauth2 import BackendApplicationClient
 from oauthlib.oauth2.rfc6749.errors import MissingTokenError
@@ -12,9 +19,8 @@ class InvalidRequest(Exception):
 class Unauthorized(Exception):
     ...
 
-
-def token_saver(token):
-    print('SAVING TOKEN:', token)
+KEY_DB = Path(__file__).parent / 'key'
+print('DB', KEY_DB)
 
 
 all_models = [
@@ -46,6 +52,14 @@ class SocialcontextClient():
     def __init__(self, app_id, app_secret):
         self.app_id = app_id
         self.app_secret = app_secret
+        try:
+            token = self.load_saved_token()
+        except KeyError:
+            token = self.fetch_api_token()
+            self.token_saver(token)
+        self.client = self.create_client_for_token(token)
+
+    def fetch_api_token(self):
         backend = BackendApplicationClient(client_id=self.app_id)
         oauth = OAuth2Session(client=backend)
         try:
@@ -58,20 +72,75 @@ class SocialcontextClient():
             # oauthlib gives the same error regardless of the problem
             print('Something went wrong, please check your client credentials.')
             exit()
-        self.client = OAuth2Session(
+        return token
+
+    def create_client_for_token(self, token):
+        return OAuth2Session(
             self.app_id,
             token=token,
             auto_refresh_url=self.REFRESH_URL,
             auto_refresh_kwargs={},
-            token_updater=token_saver)
+            token_updater=self.token_saver)
+
+    def token_saver(self, token):
+        print('--- SAVING TOKEN ---')
         print(token)
+        code = bytearray(self.app_secret, 'utf8')[:32]
+        code = base64.urlsafe_b64encode(code)
+        data = json.dumps(token)
+        data = data.encode()
+        f = Fernet(code)
+        _t = f.encrypt(data)
+        decrypted = json.loads(f.decrypt(_t))
+        print(Path(__file__).parent)
+        with dbm.open(KEY_DB.as_posix(), 'c') as db:
+            db[self.app_id] = _t
+
+    def load_saved_token(self):
+        with dbm.open(KEY_DB.as_posix(), 'c') as db:
+            token = db[self.app_id]
+        print('TOKEN::', token)
+        code = bytearray(self.app_secret, 'utf8')[:32]
+        code = base64.urlsafe_b64encode(code)
+        f = Fernet(code)
+        token = json.loads(f.decrypt(token))
+        print('TOKEN::', token)
+        return token
+
+    def clear_saved_token(self):
+        with dbm.open(KEY_DB.as_posix(), 'c') as db:
+            if self.app_id in db:
+                del(db[self.app_id]) 
+
+    def dispatch(self, method, url, data=None, **query):
+        query = urllib.parse.urlencode(query)
+        try:
+            if method =='get':
+                return self.client.get(f'{url}?{query}')
+            elif method == 'post':
+                return self.client.post(url, json=data)
+            else:
+                raise Exception('Unsupported dispatch method')
+        except oauthlib.oauth2.rfc6749.errors.MissingTokenError:
+            print('WEELL AINT THAT SOMETHING')
+            #clear_saved_token(self.app_id)
+            self.clear_saved_token()
+            print('TRY AGAIN')
+            token = self.fetch_api_token()
+            self.token_saver(token)
+            self.client = self.create_client_for_token(token)
+            if method == 'get':
+                return self.client.get(f'{url}?{query}')
+            elif method == 'post':
+                return self.client.post(url, json=data)
+            else:
+                raise Exception('Unsupported dispatch method')
 
     def get(self, url, **query):
-        q = urllib.parse.urlencode(query)
-        return self.client.get(f'{url}?{q}')
+        return self.dispatch('get', url, **query)
 
     def post(self, url, data=None):
-        return self.client.post(url, json=data)
+        return self.dispatch('post', url, data=data)
 
     def pathget(self, path, version='', **query):
         v = self.VER[version]
@@ -79,8 +148,6 @@ class SocialcontextClient():
         return self.get(url, **query) 
 
     def pathpost(self, path, version='', data=None):
-        print('VER', self.VER)
-        print('version', version)
         v = self.VER[version]
         url = f'{v}/{path}'
         return self.post(url, data=data)
