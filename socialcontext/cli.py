@@ -109,12 +109,12 @@ def stress(filename:str):
     with open(filename) as f:
         texts = f.read().split('\n\n')
         texts = [t.strip() for t in texts if t.strip()]
-    #with ThreadPoolExecutor(max_workers=3) as executor:
-    #    fn = do_classify
-    #    executor.map(do_classify, texts)
-    for text in texts:
-        do_classify(text)
-        time.sleep(5)
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        fn = do_classify
+        executor.map(do_classify, texts)
+    #for text in texts:
+    #    do_classify(text)
+    #    time.sleep(5)
     duration = round(time.time() - start, 2)
     print(f'Completed classifying all paragraphs of War and Peace in {duration} seconds.')
 
