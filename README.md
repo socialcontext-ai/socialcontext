@@ -2,10 +2,10 @@
 
 Client library for the socialcontext.ai web API
 
+```
+ $ pip install git+https://github.com/socialcontext-ai/socialcontext.git
+```
 
-```
- $ pip install -e '.[test]'
-```
 
 ## Usage
 
@@ -29,5 +29,12 @@ Client library for the socialcontext.ai web API
 
 ```
 >>> text = "Pope Francis Appoints First African-American Cardinal Wilton Gregory, the archbishop of Washington, was among 13 new cardinals named on Sunday."
->>> resp = client.classify(text=text)
+>>> resp = client.classify('news', models=['diversity', 'crime_violence', text=text)
 ```
+
+## Development
+
+```
+ $ pip install -e '.[test]'
+```
+
