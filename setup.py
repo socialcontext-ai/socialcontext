@@ -81,6 +81,7 @@ setup(
         socialcontext=socialcontext.cli:run
     """,
     install_requires=[
+        'cryptography',
         'requests-oauthlib',
         'python-dotenv',
         'pydantic',

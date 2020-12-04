@@ -22,12 +22,13 @@ with open('example_urls.txt') as f:
             continue
         print(f'Fetching: {url}')
         resp = client.news.classify(url=url, models=MODELS)
-        item = resp.json()['data'][0]
-        print('Classifications:', item['classifications'])
+        print(resp.status_code)
+        data = resp.json()
+        print('Classifications:', data['classifications'])
         if any([cls > 0.5 for cls in
-                item['classifications'].values() ]):
-            bad_articles.append(item['source']['url'])
+                data['classifications'].values() ]):
+            bad_articles.append(data['source']['url'])
         count += 1
 
 rate = len(bad_articles) / count
-print(f'{len(bad_articles)} of {count} articles blocked for brand safety. Blockage rate: {rate}')
+print(f'{len(bad_articles)} of {count} articles blocked for brand safety. Blockage rate: {rate:.2}')

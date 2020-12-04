@@ -1,3 +1,7 @@
+"""
+Based on the Webster client implementation:
+https://github.com/scott2b/Webster/tree/main/client
+"""
 from enum import Enum
 from typing import List, Optional
 import asyncio
@@ -95,7 +99,8 @@ from concurrent.futures import ThreadPoolExecutor
 def do_classify(text):
     import time
     start = time.time() 
-    r = client().news.classify(models=['vice', 'diversity'], text=text)
+    from .api import all_models
+    r = client().news.classify(models=all_models, text=text)
     output(r.json())
     duration = round(time.time() - start, 2)
     print(f'Fetched 1 in {duration} seconds')
@@ -109,7 +114,7 @@ def stress(filename:str):
     with open(filename) as f:
         texts = f.read().split('\n\n')
         texts = [t.strip() for t in texts if t.strip()]
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with ThreadPoolExecutor() as executor:
         fn = do_classify
         executor.map(do_classify, texts)
     #for text in texts:

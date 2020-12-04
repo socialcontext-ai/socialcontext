@@ -4,6 +4,7 @@ import json
 import logging
 import urllib
 import oauthlib
+import os
 import requests
 import sys
 from pathlib import Path
@@ -40,8 +41,9 @@ all_models = [
 
 class SocialcontextClient():
 
-    API_ROOT = 'http://localhost:8000'
-    #API_ROOT = 'https://beta.socialcontext.ai'
+    API_ROOT = os.environ.get(
+        'SOCIALCONTEXT_API_ROOT',
+        'https://beta.socialcontext.ai')
 
     VER = {
         '': API_ROOT,
