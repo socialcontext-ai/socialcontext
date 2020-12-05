@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import os
 
 VERSION = '0.1.2'
@@ -75,7 +75,7 @@ setup(
     },
     license='',
     version=VERSION,
-    packages=[''],
+    packages=find_packages(),
     entry_points="""
         [console_scripts]
         socialcontext=socialcontext.cli:run
