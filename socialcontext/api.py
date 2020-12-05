@@ -27,7 +27,7 @@ class Unauthorized(Exception):
 KEY_DB = Path(__file__).parent / 'key'
 
 
-all_models = [
+models = [
     'crime_violence',
     'diversity',
     'injuries',

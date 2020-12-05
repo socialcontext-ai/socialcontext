@@ -99,8 +99,8 @@ from concurrent.futures import ThreadPoolExecutor
 def do_classify(text):
     import time
     start = time.time() 
-    from .api import all_models
-    r = client().news.classify(models=all_models, text=text)
+    from .api import models
+    r = client().news.classify(models=models, text=text)
     output(r.json())
     duration = round(time.time() - start, 2)
     print(f'Fetched 1 in {duration} seconds')
