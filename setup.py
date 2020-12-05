@@ -1,7 +1,7 @@
 from setuptools import setup
 import os
 
-VERSION = '1.0.6'
+VERSION = '0.1.1'
 
 
 def get_long_description():
@@ -75,7 +75,7 @@ setup(
     },
     license='',
     version=VERSION,
-    packages=['socialcontext'],
+    packages=[''],
     entry_points="""
         [console_scripts]
         socialcontext=socialcontext.cli:run
