@@ -28,12 +28,14 @@ KEY_DB = Path(__file__).parent / 'key'
 
 
 models = [
+    'antivax',
     'crime_violence',
     'diversity',
     'injuries',
     'military',
     'political',
     'profanity',
+    'provax',
     'sexually_explicit',
     'vice',
 ]

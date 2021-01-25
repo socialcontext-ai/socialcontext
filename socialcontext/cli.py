@@ -32,12 +32,14 @@ class ContentTypes(str, Enum):
 
 
 class Models(str, Enum):
+    antivax = 'antivax'
     crime_violence = 'crime_violence'
     diversity = 'diversity'
     injuries = 'injuries'
     military = 'military'
     political = 'political'
     profanity = 'profanity'
+    provax = 'provax'
     sexually_explicit = 'sexually_explicit'
     vice = 'vice'
 
