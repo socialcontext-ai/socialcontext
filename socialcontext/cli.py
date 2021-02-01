@@ -35,13 +35,19 @@ class Models(str, Enum):
     antivax = 'antivax'
     crime_violence = 'crime_violence'
     diversity = 'diversity'
+    elite = 'elite'
+    emerging = 'emerging'
+    fake_news = 'fake_news'
     injuries = 'injuries'
     military = 'military'
+    online_partisan = 'online_partisan'
     political = 'political'
     profanity = 'profanity'
     provax = 'provax'
     sexually_explicit = 'sexually_explicit'
+    traditional = 'traditional'
     vice = 'vice'
+    wire = 'wire'
 
 
 def complete_content_type(incomplete: str):

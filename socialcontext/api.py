@@ -31,13 +31,19 @@ models = [
     'antivax',
     'crime_violence',
     'diversity',
+    'elite',
+    'emerging',
+    'fake_news',
     'injuries',
     'military',
+    'online_partisan',
     'political',
     'profanity',
     'provax',
     'sexually_explicit',
+    'traditional',
     'vice',
+    'wire'
 ]
 
 
