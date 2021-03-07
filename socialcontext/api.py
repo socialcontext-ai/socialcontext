@@ -35,6 +35,7 @@ models = [
     'emerging',
     'fake_news',
     'injuries',
+    'lgbt',
     'military',
     'online_partisan',
     'political',

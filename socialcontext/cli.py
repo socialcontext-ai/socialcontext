@@ -39,6 +39,7 @@ class Models(str, Enum):
     emerging = 'emerging'
     fake_news = 'fake_news'
     injuries = 'injuries'
+    lgbt = 'lgbt'
     military = 'military'
     online_partisan = 'online_partisan'
     political = 'political'
