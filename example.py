@@ -12,7 +12,8 @@ client = SocialcontextClient(
 bad_articles = []
 MODELS = [
     'crime_violence',
-    'profanity']
+    'military',
+    'vice']
 
 count = 0
 with open('example_urls.txt') as f:

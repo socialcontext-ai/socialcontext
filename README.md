@@ -9,6 +9,11 @@ Client library for the socialcontext.ai web API
 
 ## Usage
 
+**Note:** It is strongly recommended to run only a single client instance of a
+given API client in a production scenario. Due to OAuth token refreshes,
+running multiple clients with the same credentials can cause authentication
+errors.
+
 
 ### Instantiate a client
 

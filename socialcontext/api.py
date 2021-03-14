@@ -179,6 +179,19 @@ class SocialcontextClient():
             raise Unauthorized
         return r
 
+    def makeclient(self, client_name, version='v0.1'):
+        r = self.pathpost('clients', version, data={
+            'name': client_name}) 
+        if r.status_code == 403:
+            raise Unauthorized
+        return r
+
+    def clients(self, version='v0.1'):
+        r = self.pathget('clients', version)
+        if r.status_code == 403:
+            raise Unauthorized
+        return r
+
     @property
     def news(self):
         if self._news is None:
