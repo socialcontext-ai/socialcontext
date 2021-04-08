@@ -34,7 +34,9 @@ models = [
     'elite',
     'emerging',
     'fake_news',
+    'gender_equality',
     'injuries',
+    'latinx',
     'lgbt',
     'military',
     'online_partisan',
@@ -179,6 +181,13 @@ class SocialcontextClient():
             raise Unauthorized
         return r
 
+    def batch(self, content_type, *, location=None, models=None, version='v0.1a'):
+        r = self.pathpost(f'{content_type}/batches', version, data={
+            'location': location,
+            'models': models
+        })
+        return r
+
     def makeclient(self, client_name, version='v0.1'):
         r = self.pathpost('clients', version, data={
             'name': client_name}) 
@@ -196,6 +205,7 @@ class SocialcontextClient():
     def news(self):
         if self._news is None:
             self._news = type('news', (object,), {
-                'classify': partial(self.classify, 'news')
+                'classify': partial(self.classify, 'news'),
+                'batch': partial(self.batch, 'news')
             })
         return self._news()

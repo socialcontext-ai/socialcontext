@@ -38,7 +38,9 @@ class Models(str, Enum):
     elite = 'elite'
     emerging = 'emerging'
     fake_news = 'fake_news'
+    gender_equality = 'gender_equality'
     injuries = 'injuries'
+    latinx = 'latinx'
     lgbt = 'lgbt'
     military = 'military'
     online_partisan = 'online_partisan'
@@ -100,6 +102,14 @@ def classify(
         raise typer.Exit()
     output(r.json())
 
+@app.command()
+def batch(
+    content_type: ContentTypes=typer.Argument(..., help="Content type", autocompletion=complete_content_type),
+    location: str = typer.Argument(..., help="Location of the batch content to classify"),
+    models: List[Models] = typer.Argument(..., help="classification models")):
+    """Create a batch classification job."""
+    r = client().batch(content_type, location=location, models=models)
+    output(r.json())
 
 ### Stress test. Internal use only
 
