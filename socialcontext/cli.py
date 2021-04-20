@@ -102,6 +102,7 @@ def classify(
         raise typer.Exit()
     output(r.json())
 
+
 @app.command()
 def batch(
     content_type: ContentTypes=typer.Argument(..., help="Content type", autocompletion=complete_content_type),
@@ -110,6 +111,16 @@ def batch(
     """Create a batch classification job."""
     r = client().batch(content_type, location=location, models=models)
     output(r.json())
+
+
+@app.command()
+def job(
+    content_type: ContentTypes=typer.Argument(..., help="Content type", autocompletion=complete_content_type),
+    job_id: int = typer.Argument(..., help="The numeric ID of the job")):
+    """Get the current status of a news batch job."""
+    r = client().batch_job(content_type, job_id)
+    output(r.json())
+
 
 ### Stress test. Internal use only
 

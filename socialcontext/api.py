@@ -188,6 +188,10 @@ class SocialcontextClient():
         })
         return r
 
+    def batch_job(self, content_type, job_id, *, version='v0.1a'):
+        r = self.pathget(f'{content_type}/batches/{job_id}', version)
+        return r
+
     def makeclient(self, client_name, version='v0.1'):
         r = self.pathpost('clients', version, data={
             'name': client_name}) 
