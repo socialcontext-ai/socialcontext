@@ -7,6 +7,7 @@ from typing import List, Optional
 import asyncio
 import json
 import os
+from gzip import GzipFile
 import typer
 from .api import SocialcontextClient
 
@@ -120,6 +121,73 @@ def job(
     """Get the current status of a news batch job."""
     r = client().batch_job(content_type, job_id)
     output(r.json())
+
+
+# s3
+
+_s3_resource = None
+
+def s3_resource():
+    import boto3
+    global _s3_resource
+    if _s3_resource is None:
+        _s3_resource = boto3.resource('s3')
+    return _s3_resource
+
+
+def s3_client():
+    resource = s3_resource()
+    return resource.meta.client
+
+
+def parse_path(path):
+    assert path.startswith('s3://'), f'Invalid s3 path: {path}'
+    bucket = path.split('/')[2]
+    key = '/'.join(path.split('/')[3:]).strip('/')
+    return bucket, key
+
+
+def iterate_file(bucket, key, encoding='utf-8'):
+    obj = s3_resource().Object(bucket, key).get()['Body']
+    if key.endswith('.gz'):
+        obj = GzipFile(None, 'rb', fileobj=obj)
+        for line in obj:
+            yield line.decode(encoding).strip()
+    else:
+        for line in obj.iter_lines():
+            yield line.decode(encoding).strip()
+
+
+@app.command()
+def download(
+    path: str = typer.Argument(..., help="s3 output folder to download"),
+    file_: str = typer.Argument(..., metavar='FILE', help="file to write to"),
+):
+    """Download the data and errors from an output location."""
+    bucket, key = parse_path(path)
+    response = s3_client().list_objects(
+        Bucket=bucket,
+        Prefix=key
+    )
+    data_files = []
+    error_files = []
+    for item in response.get('Contents', []):
+        key = item['Key']
+        name = key.split('/')[-1]
+        if name.startswith('data-'):
+            data_files.append(key)
+        elif name.startswith('errors-'):
+            error_files.append(key)
+    data_files = sorted(data_files)
+    error_files = sorted(error_files)
+    with open(file_, 'w') as outfile:
+        for df_i, key in enumerate(data_files):
+            fn = f's3://{bucket}/{key}'
+            for i, line in enumerate(iterate_file(bucket, key)):
+                if df_i > 0 and i == 0: # skip headers after the first file
+                    continue
+                outfile.write(f'{line}\n')
+
 
 
 ### Stress test. Internal use only

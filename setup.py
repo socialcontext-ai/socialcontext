@@ -89,7 +89,8 @@ setup(
         'typer',
     ],
     extras_require={
-        'test': ['pytest']
+        'test': ['pytest'],
+        'aws': ['boto3']
     },
     tests_require=['socialcontext[test]'],
 )
