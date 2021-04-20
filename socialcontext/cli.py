@@ -189,6 +189,17 @@ def download(
                 outfile.write(f'{line}\n')
 
 
+@app.command()
+def upload(
+    file_: str = typer.Argument(..., metavar='FILE', help="File to be upload as urls.txt"),
+    path: str = typer.Argument(..., help="S3 job path"),
+):
+    """Upload a file of URLs as a new job file."""
+    bucket, key = parse_path(path)
+    key = key.strip('/') + '/urls.txt'
+    s3_client().upload_file(file_, bucket, key)
+    print(f'Uploaded: s3://{bucket}/{key}')
+
 
 ### Stress test. Internal use only
 
