@@ -7,6 +7,7 @@ from typing import List, Optional
 import asyncio
 import json
 import os
+import sys
 from gzip import GzipFile
 import typer
 from .api import SocialcontextClient
@@ -197,46 +198,40 @@ def download(
 @app.command()
 def upload(
     file_: str = typer.Argument(..., metavar='FILE', help="File to be upload as urls.txt"),
-    path: str = typer.Argument(..., help="S3 job path"),
+    name: str = typer.Argument(..., help="Job name. Must be unique to account."),
 ):
     """Upload a file of URLs as a new job file."""
-    bucket, key = parse_path(path)
-    key = key.strip('/') + '/urls.txt'
-    s3_client().upload_file(file_, bucket, key)
-    print(f'Uploaded: s3://{bucket}/{key}')
-
-
-### Stress test. Internal use only
-
-from concurrent.futures import ThreadPoolExecutor
-
-def do_classify(text):
-    import time
-    start = time.time() 
-    from .api import models
-    r = client().news.classify(models=models, text=text)
-    output(r.json())
-    duration = round(time.time() - start, 2)
-    print(f'Fetched 1 in {duration} seconds')
+    s3 = s3_resource()
+    client = s3.meta.client
+    org_name = 'ExampleOrg'
+    name = name.strip('/ .')
+    bucket = 'socialcontext-batches'
+    key = f'{org_name}/{name}/urls.txt'
+    try:
+        s3.Object(bucket, key).load()
+        typer.echo(typer.style(
+            f'News batch job file already exists: s3://{bucket}/{key}',
+            fg=typer.colors.RED, bold=True))
+        sys.exit()
+    except client.exceptions.ClientError as e:
+        if 'operation: Not Found' in str(e):
+            client.upload_file(file_, bucket, key)
+            typer.echo(f'Uploaded: s3://{bucket}/{key}')
+        else: 
+            raise
 
 
 @app.command()
-def stress(filename:str):
-    """Stress test the API."""
-    import time
-    start = time.time()
-    with open(filename) as f:
-        texts = f.read().split('\n\n')
-        texts = [t.strip() for t in texts if t.strip()]
-    with ThreadPoolExecutor() as executor:
-        fn = do_classify
-        executor.map(do_classify, texts)
-    #for text in texts:
-    #    do_classify(text)
-    #    time.sleep(5)
-    duration = round(time.time() - start, 2)
-    print(f'Completed classifying all paragraphs of War and Peace in {duration} seconds.')
-
+def list():
+    """List existing news batch job file locations."""
+    s3 = s3_resource()
+    org_name = 'ExampleOrg'
+    bucket = s3.Bucket('socialcontext-batches')
+    for f in bucket.objects.filter(Prefix=org_name):
+        key = f.key
+        if key.split('/')[-1] == 'urls.txt':
+            print(key)
+    
 
 def run():
     app()
