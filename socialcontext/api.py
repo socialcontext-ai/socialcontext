@@ -165,6 +165,11 @@ class SocialcontextClient():
         url = f'{v}/{path}'
         return self.post(url, data=data)
 
+    # API endpoints
+
+    def openapi(self):
+        return self.get(f'{self.API_ROOT}/docs/openapi.json')
+
     def classify(self, content_type, *, models=None, url=None, text=None, version='v0.1a'):
         if url:
             reqtype = 'url'
@@ -181,15 +186,24 @@ class SocialcontextClient():
             raise Unauthorized
         return r
 
-    def batch(self, content_type, *, location=None, models=None, version='v0.1a'):
-        r = self.pathpost(f'{content_type}/batches', version, data={
-            'location': location,
-            'models': models
+    def submit(self, job_name, *, content_type='news', input_file=None, models=None,
+              output_path=None, execute=False, version='v0.1a'):
+        """Submit a job for batch processing."""
+        r = self.pathpost('jobs', version, data={
+            'name': job_name,
+            'content_type': content_type,
+            'input_file': input_file,
+            'output_path': output_path,
+            'models': models,
+            'execute': execute
         })
         return r
 
-    def batch_job(self, content_type, job_id, *, version='v0.1a'):
-        r = self.pathget(f'{content_type}/jobs/{job_id}/status', version)
+    def jobs(self, *, job_name=None, version='v0.1a'):
+        if job_name:
+            r = self.pathget(f'jobs/{job_name}/status', version)
+        else:
+            r = self.pathget(f'jobs', version)
         return r
 
     def makeclient(self, client_name, version='v0.1'):
