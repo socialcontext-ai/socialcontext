@@ -186,22 +186,48 @@ class SocialcontextClient():
             raise Unauthorized
         return r
 
-    def submit(self, job_name, *, content_type='news', input_file=None, models=None,
-              output_path=None, execute=False, version='v0.1a'):
-        """Submit a job for batch processing."""
+    #def submit(self, job_name, *, content_type='news', input_file=None, models=None,
+    #          output_path=None, execute=False, version='v0.1a'):
+    #    """Submit a job for batch processing."""
+    #    r = self.pathpost('jobs', version, data={
+    #        'job_name': job_name,
+    #        'content_type': content_type,
+    #        'input_file': input_file,
+    #        'output_path': output_path,
+    #        'models': models,
+    #        'execute': execute
+    #    })
+    #    return r
+
+    def account_info(self, version='v0.1a'):
+        """Get info for user account."""
+        r = self.pathget('account', version)
+        return r
+
+
+    def create_job(self, job_name, *, content_type='news', input_file=None, models=None,
+              output_path=None, version='v0.1a'):
+        """Create a batch processing job."""
         r = self.pathpost('jobs', version, data={
-            'name': job_name,
+            'job_name': job_name,
             'content_type': content_type,
             'input_file': input_file,
             'output_path': output_path,
-            'models': models,
-            'execute': execute
+            'models': models
         })
         return r
 
+    def run_job(self, job_name, *, version='v0.1a'):
+        """Create a job execution for a pre-defined job."""
+        r = self.pathpost('executions', version, data={
+            'job_name': job_name
+        }) 
+        return r
+
     def jobs(self, *, job_name=None, version='v0.1a'):
+        """List jobs or show details of a specified job."""
         if job_name:
-            r = self.pathget(f'jobs/{job_name}/status', version)
+            r = self.pathget(f'jobs/{job_name}', version)
         else:
             r = self.pathget(f'jobs', version)
         return r

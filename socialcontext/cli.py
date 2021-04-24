@@ -6,73 +6,17 @@ from enum import Enum
 from typing import List, Optional
 import asyncio
 import json
-import os
 import sys
 from gzip import GzipFile
 import typer
-from .api import SocialcontextClient
+from .utils import ContentTypes, complete_content_type, output, Models
+from .utils import VERSION, BATCHES_BUCKET, client
+from . import jobs
 
-VERSION = 'v0.1a'
-BATCHES_BUCKET = 'socialcontext-batches'
-
-app_id = os.environ['SOCIALCONTEXT_APP_ID']
-app_secret = os.environ['SOCIALCONTEXT_APP_SECRET']
 
 app = typer.Typer()
+app.add_typer(jobs.app, name='jobs')
 
-_client = None
-def client():
-    global _client
-    if _client is None:
-        _client = SocialcontextClient(app_id, app_secret)
-    return _client
-
-
-class ContentTypes(str, Enum):
-    news = 'news'
-
-
-class Models(str, Enum):
-    antivax = 'antivax'
-    crime_violence = 'crime_violence'
-    diversity = 'diversity'
-    elite = 'elite'
-    emerging = 'emerging'
-    fake_news = 'fake_news'
-    female_sports = 'female_sports'
-    fetch_error = 'fetch_error'
-    gender_equality = 'gender_equality'
-    injuries = 'injuries'
-    latinx = 'latinx'
-    lgbt = 'lgbt'
-    low_cred = 'low_cred'
-    male_sports = 'male_sports'
-    military = 'military'
-    online_partisan = 'online_partisan'
-    political = 'political'
-    profanity = 'profanity'
-    provax = 'provax'
-    renewable_energy = 'renewable_energy'
-    sexually_explicit = 'sexually_explicit'
-    traditional = 'traditional'
-    vice = 'vice'
-    wire = 'wire'
-
-
-def complete_content_type(incomplete: str):
-    for name in ContentTypes:
-        if name.startswith(incomplete):
-            yield (name, help_text)
-
-
-def output(data, *, filename=None, indent=4):
-    if filename is None:
-        s = json.dumps(data, indent=indent, ensure_ascii=False).encode('utf-8')
-        print(s.decode())
-    if filename is not None:
-        with open(filename, 'w', encoding='utf8') as f:
-            json.dump(data, f, indent=indent, ensure_ascii=False)
-     
 
 @app.command()
 def version():
@@ -130,17 +74,15 @@ def classify(
 #    output(r.json())
 
 
-@app.command()
-def jobs(
-    organization: str = typer.Option(..., help="Organization name for socialcontext account", envvar="SOCIALCONTEXT_ORGANIZATION"),
-    job_name: str = typer.Argument(None, help="A batch job name.")):
-    """Lists, information, and controls for batch jobs."""
-    if job_name:
-        r = client().jobs(job_name=job_name)
-        output(r.json())
-    else:
-        r = client().jobs()
-        output(r.json())
+#@app.command()
+#def jobs(job_name: str = typer.Argument(None, help="A batch job name.")):
+#    """Lists, information, and controls for batch jobs."""
+#    if job_name:
+#        r = client().jobs(job_name=job_name)
+#        output(r.json())
+#    else:
+#        r = client().jobs()
+#        output(r.json())
     
 
 
@@ -179,25 +121,30 @@ def iterate_file(bucket, key, encoding='utf-8'):
             yield line.decode(encoding).strip()
 
 
+class DownloadFileTypes(str, Enum):
+    data = 'data'
+    errors = 'errors'
+
+
 @app.command()
 def download(
-    job_name: str = typer.Argument(..., help="s3 output folder to download"),
-    organization: str = typer.Option(..., help="Organization name for socialcontext account", envvar="SOCIALCONTEXT_ORGANIZATION"),
-    content_type: ContentTypes=typer.Option("news", help="Content type. Currently only news is supported.", autocompletion=complete_content_type),
-    output_file: typer.FileTextWrite = typer.Option(None, help="Output file to write.")
+    path: str = typer.Argument(..., help="s3 output folder to download"),
+    output_file: typer.FileTextWrite = typer.Option(None, help="Output file to write."),
+    file_type: DownloadFileTypes = typer.Option(None, help="Type of output files to download.")
 ):
-    """Download the output data from a  batch job. A convenience function which downloads the
-    job output data as a single stream or file, with only a single CSV header
-    on the first line of the results."""
+    """Download the output data from a batch job output location.  Downloads
+    job output as a single stream and does the work of stripping CSV headers
+    from all but the first file.
+
+    Provided as a convenience for simplifying management of batch output CSV
+    downloads to be consolidated. For general batch file management, the AWS
+    CLI is recommended.
+    """
     s3 = s3_resource()
     s3_client = s3.meta.client
-    job_name = job_name.strip('/ .').replace(' ', '_')
-    output_path = f'{organization}/{content_type}/{job_name}'
-    output_url = f's3://{BATCHES_BUCKET}/{output_path}'
-    response = s3_client.list_objects(
-        Bucket=BATCHES_BUCKET,
-        Prefix=output_path
-    )
+    bucket, path = parse_path(path)
+    path = path.rstrip('/') + '/'
+    response = s3_client.list_objects(Bucket=bucket, Prefix=path)
     data_files = []
     error_files = []
     for item in response.get('Contents', []):
@@ -210,8 +157,8 @@ def download(
     data_files = sorted(data_files)
     error_files = sorted(error_files)
     for df_i, key in enumerate(data_files):
-        fn = f's3://{BATCHES_BUCKET}/{key}'
-        for i, line in enumerate(iterate_file(BATCHES_BUCKET, key)):
+        fn = f's3://{bucket}/{key}'
+        for i, line in enumerate(iterate_file(bucket, key)):
             if df_i > 0 and i == 0: # skip headers after the first file
                 continue
             if output_file:
@@ -246,111 +193,98 @@ def download(
 #            raise
 
 
-@app.command()
-def files(
-    job_name: str = typer.Argument(None, help="Job name."),
-    organization: str = typer.Option(..., help="Organization name for socialcontext account", envvar="SOCIALCONTEXT_ORGANIZATION"),
-    content_type: ContentTypes=typer.Option("news", help="Content type. Currently only news is supported.", autocompletion=complete_content_type),
-):
-    """List batch job files. List the data files for a named job. If a job
-    name is not provided, the job paths containing urls.txt files will
-    be listed. The corresponding job name for listed job paths can be
-    determined from the URL format:
-
-        s3://{Bucket}/{OrganizationName}/{ContentType}/{JobName}
-
-    Job names may contain forward slashes (/).
-    """
-    s3 = s3_client()
-    if job_name:
-        prefix = f'{organization}/{content_type}/{job_name}'
-    else:
-        prefix = f'{organization}/{content_type}'
-    r = s3.list_objects_v2(Bucket=BATCHES_BUCKET, Prefix=prefix)
-    for f in r['Contents']:
-        key = f['Key']
-        if not job_name:
-            if key.endswith('/urls.txt'):
-                key = '/'.join(key.split('/')[:-1])
-            else:
-                continue
-        path = f's3://{BATCHES_BUCKET}/{key}'
-        typer.echo(path)
+#@app.command()
+#def files(
+#    job_name: str = typer.Argument(None, help="Job name."),
+#    organization: str = typer.Option(..., help="Organization name for socialcontext account", envvar="SOCIALCONTEXT_ORGANIZATION"),
+#    content_type: ContentTypes=typer.Option("news", help="Content type. Currently only news is supported.", autocompletion=complete_content_type),
+#):
+#    """List batch job files. List the data files for a named job. If a job
+#    name is not provided, the job paths containing urls.txt files will
+#    be listed. The corresponding job name for listed job paths can be
+#    determined from the URL format:
+#
+#        s3://{Bucket}/{OrganizationName}/{ContentType}/{JobName}
+#
+#    Job names may contain forward slashes (/).
+#    """
+#    s3 = s3_client()
+#    if job_name:
+#        prefix = f'{organization}/{content_type}/{job_name}'
+#    else:
+#        prefix = f'{organization}/{content_type}'
+#    r = s3.list_objects_v2(Bucket=BATCHES_BUCKET, Prefix=prefix)
+#    for f in r['Contents']:
+#        key = f['Key']
+#        if not job_name:
+#            if key.endswith('/urls.txt'):
+#                key = '/'.join(key.split('/')[:-1])
+#            else:
+#                continue
+#        path = f's3://{BATCHES_BUCKET}/{key}'
+#        typer.echo(path)
     
 
-@app.command()
-def submit(
-    job_name: str = typer.Argument(..., help="Job name. Must be unique to account."),
-    organization: str = typer.Option(..., help="Organization name for socialcontext account", envvar="SOCIALCONTEXT_ORGANIZATION"),
-    content_type: ContentTypes=typer.Option("news", help="Content type. Currently only news is supported.", autocompletion=complete_content_type),
-    urls: str = typer.Option(..., help="File to be upload as urls.txt"),
-    execute: bool = typer.Option(False, help="Execute the job after completing the upload."),
-    models: List[Models] = typer.Argument(None, help="Classification models")
-):
-    """Upload a file of URLs as a new job file and submit the job for batch processing.
-    The file is written as urls.txt to the Job location, which is defined as:
-
-    s3://socialcontext-batches/{OrganizationName}/{ContentType}/{JobName}/
-
-    Job names may include forward slashes (/) in order to create a path-like
-    hierarchy of job organization. Job names must be valid S3 key names. Spaces
-    are not allowed and will be replaced with underscores (_).
-
-    After uploading the URLs file, the job is submitted to the socialcontext
-    API to initiate a new batch processing job. 
-
-    This command is the equivalent of both:
-      * uploading a urls.txt to a job-name specific s3 location, and
-      * initiating the job execution via `socialcontext exec`
-
-    Only one of `submit` or `exec` should be called for a given job.
-    """
-    s3 = s3_resource()
-    s3_client = s3.meta.client
-    job_name = job_name.strip('/ .').replace(' ', '_')
-    output_path = f'{organization}/{content_type}/{job_name}'
-    output_url = f's3://{BATCHES_BUCKET}/{output_path}'
-    input_key = f'{output_path}/urls.txt'
-    input_file = f's3://{BATCHES_BUCKET}/{input_key}'
-    try:
-        s3.Object(BATCHES_BUCKET, input_key).load()
-        typer.echo(typer.style(
-            f'News batch job file already exists: {input_file}',
-            fg=typer.colors.RED, bold=True))
-        sys.exit()
-    except s3_client.exceptions.ClientError as e:
-        if 'operation: Not Found' in str(e):
-            s3_client.upload_file(urls, BATCHES_BUCKET, input_key)
-            typer.echo(f'Uploaded: {input_file}')
-        else: 
-            raise
-    submit_kwargs = {
-        'input_file': input_file,
-        'content_type': content_type,
-        'output_path': output_url,
-        'models': models
-    }
-    if execute:
-        submit_kwargs['execute'] = True
-    r = client().submit(job_name, **submit_kwargs)
-    output(r.json())
-    print(output)
-    if not execute:
-        typer.echo(f"""To execute job, run command:
-
-socialcontext exec {job_name}
-""")
-
-
-@app.command()
-def exec(
-    job_name: str = typer.Argument(..., help="Job name. Must be unique to account.")
-):
-    """Start a batch job execution of the specified URL input file. If the
-    output path is not specified, the output path will be the containing
-    location of the input file.
-    """
-    r = client().execute(job_name)
+#def submit(
+#    job_name: str = typer.Argument(..., help="Job name. Must be unique to account."),
+#    organization: str = typer.Option(..., help="Organization name for socialcontext account", envvar="SOCIALCONTEXT_ORGANIZATION"),
+#    content_type: ContentTypes=typer.Option("news", help="Content type. Currently only news is supported.", autocompletion=complete_content_type),
+#    urls: str = typer.Option(..., help="File to be upload as urls.txt"),
+#    execute: bool = typer.Option(False, help="Execute the job after completing the upload."),
+#    models: List[Models] = typer.Argument(None, help="Classification models")
+#):
+#    """Upload a file of URLs as a new job file and submit the job for batch processing.
+#    The file is written as urls.txt to the Job location, which is defined as:
+#
+#    s3://socialcontext-batches/{OrganizationName}/{ContentType}/{JobName}/
+#
+#    Job names may include forward slashes (/) in order to create a path-like
+#    hierarchy of job organization. Job names must be valid S3 key names. Spaces
+#    are not allowed and will be replaced with underscores (_).
+#
+#    After uploading the URLs file, the job is submitted to the socialcontext
+#    API to initiate a new batch processing job. 
+#
+#    This command is the equivalent of both:
+#      * uploading a urls.txt to a job-name specific s3 location, and
+#      * initiating the job execution via `socialcontext exec`
+#
+#    Only one of `submit` or `exec` should be called for a given job.
+#    """
+#    s3 = s3_resource()
+#    s3_client = s3.meta.client
+#    job_name = job_name.strip('/ .').replace(' ', '_')
+#    output_path = f'{organization}/{content_type}/{job_name}'
+#    output_url = f's3://{BATCHES_BUCKET}/{output_path}'
+#    input_key = f'{output_path}/urls.txt'
+#    input_file = f's3://{BATCHES_BUCKET}/{input_key}'
+#    try:
+#        s3.Object(BATCHES_BUCKET, input_key).load()
+#        typer.echo(typer.style(
+#            f'News batch job file already exists: {input_file}',
+#            fg=typer.colors.RED, bold=True))
+#        sys.exit()
+#    except s3_client.exceptions.ClientError as e:
+#        if 'operation: Not Found' in str(e):
+#            s3_client.upload_file(urls, BATCHES_BUCKET, input_key)
+#            typer.echo(f'Uploaded: {input_file}')
+#        else: 
+#            raise
+#    submit_kwargs = {
+#        'input_file': input_file,
+#        'content_type': content_type,
+#        'output_path': output_url,
+#        'models': models
+#    }
+#    if execute:
+#        submit_kwargs['execute'] = True
+#    r = client().submit(job_name, **submit_kwargs)
+#    output(r.json())
+#    if not execute:
+#        typer.echo(f"""To execute job, run command:
+#
+#socialcontext exec {job_name}
+#""")
 
 
 def run():
