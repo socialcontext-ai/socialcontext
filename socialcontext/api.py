@@ -186,19 +186,6 @@ class SocialcontextClient():
             raise Unauthorized
         return r
 
-    #def submit(self, job_name, *, content_type='news', input_file=None, models=None,
-    #          output_path=None, execute=False, version='v0.1a'):
-    #    """Submit a job for batch processing."""
-    #    r = self.pathpost('jobs', version, data={
-    #        'job_name': job_name,
-    #        'content_type': content_type,
-    #        'input_file': input_file,
-    #        'output_path': output_path,
-    #        'models': models,
-    #        'execute': execute
-    #    })
-    #    return r
-
     def account_info(self, version='v0.1a'):
         """Get info for user account."""
         r = self.pathget('account', version)

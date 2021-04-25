@@ -1,8 +1,11 @@
 """
 Batch job management commands.
 """
+import json
+import os
 import re
 import sys
+from os.path import expanduser
 from typing import List, Optional
 from .utils import ContentTypes, complete_content_type, output, Models
 from .utils import VERSION, BATCHES_BUCKET, client
@@ -11,9 +14,8 @@ import typer
 app = typer.Typer(help="Batch job managment commands.")
 
 
-
-@app.command()
-def list():
+@app.command('list')
+def list_():
     """List batch jobs for account."""
     r = client().jobs()
     output(r.json())
@@ -34,6 +36,7 @@ def create(
     content_type: ContentTypes=typer.Option("news", help="Content type. Currently only news is supported.", autocompletion=complete_content_type),
     input_file: str = typer.Argument(..., help="File containing URLs. Must be readable by the socialcontext batch system."),
     output_path: str = typer.Option(None, help="Location to write output files.  Must be writeable by the socialcontext batch system."),
+    profile: str = typer.Option(None, help="Read optons from a ~/.socialcontext.json profile"),
     options: Optional[List[str]] = typer.Option(None, help="Options reserved for administrative use."),
     models: List[Models] = typer.Argument(None, help="Classification models")
 ):
@@ -52,7 +55,22 @@ def create(
 
     If an output path is not specified, the location of the input file will be used.
     The output path must be a writeable location by the socialcontext batch system.
+
+    A profile may be specified which is a named key at profiles.[profile_name]
+    in the ~/.socialcontext.json file. Profiles currently supports a model key
+    which contains a list of models that will be merged with any models
+    specified on the command line.
     """
+    models = list(models) or []
+    options = list(options) or []
+    if profile:
+        home = expanduser("~")
+        cfg = json.load(open(os.path.join(home, '.socialcontext.json')))
+        profile_info = cfg.get('profiles', {})[profile]
+        models += profile_info.get('models', []) 
+        models = list(set(models))
+        options += profile_info.get('options', [])
+        options = list(set(options))
     if job_name is None:
         account_info = client().account_info().json()
         organization = account_info['data'].get('orgName')
