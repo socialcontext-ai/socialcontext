@@ -1,0 +1,32 @@
+{
+    "profiles": {
+        "all": {
+            "models": [
+                "antivax",
+                "crime_violence",
+                "diversity",
+                "elite",
+                "emerging",
+                "fake_news",
+                "female_sports",
+                "fetch_error",
+                "gender_equality",
+                "injuries",
+                "latinx",
+                "lgbt",
+                "low_cred",
+                "male_sports",
+                "military",
+                "online_partisan",
+                "political",
+                "profanity",
+                "provax",
+                "renewable_energy",
+                "sexually_explicit",
+                "traditional",
+                "vice",
+                "wire"
+            ]
+        } 
+    }
+}
