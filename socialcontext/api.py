@@ -206,14 +206,15 @@ class SocialcontextClient():
 
 
     def create_job(self, job_name, *, content_type='news', input_file=None, models=None,
-              output_path=None, version='v0.1a'):
+              output_path=None, options=None, version='v0.1a'):
         """Create a batch processing job."""
         r = self.pathpost('jobs', version, data={
             'job_name': job_name,
             'content_type': content_type,
             'input_file': input_file,
             'output_path': output_path,
-            'models': models
+            'models': models,
+            'options': options
         })
         return r
 

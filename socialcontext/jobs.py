@@ -34,6 +34,7 @@ def create(
     content_type: ContentTypes=typer.Option("news", help="Content type. Currently only news is supported.", autocompletion=complete_content_type),
     input_file: str = typer.Argument(..., help="File containing URLs. Must be readable by the socialcontext batch system."),
     output_path: str = typer.Option(None, help="Location to write output files.  Must be writeable by the socialcontext batch system."),
+    options: Optional[List[str]] = typer.Option(None, help="Options reserved for administrative use."),
     models: List[Models] = typer.Argument(None, help="Classification models")
 ):
     """Submit a job for batch processing.
@@ -83,7 +84,8 @@ the --job-name parameter.
         'input_file': input_file,
         'content_type': content_type,
         'output_path': output_path,
-        'models': models
+        'models': models,
+        'options': options
     }
     r = client().create_job(job_name, **info)
     output(r.json())
