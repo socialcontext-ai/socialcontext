@@ -11,6 +11,8 @@ from .utils import ContentTypes, complete_content_type, output, Models
 from .utils import VERSION, BATCHES_BUCKET, client
 import typer
 
+from .api import DEFAULT_BATCH_SIZE, MIN_BATCH_SIZE, MAX_BATCH_SIZE
+
 app = typer.Typer(help="Batch job managment commands.")
 
 
@@ -36,6 +38,8 @@ def create(
     content_type: ContentTypes=typer.Option("news", help="Content type. Currently only news is supported.", autocompletion=complete_content_type),
     input_file: str = typer.Argument(..., help="File containing URLs. Must be readable by the socialcontext batch system."),
     output_path: str = typer.Option(None, help="Location to write output files.  Must be writeable by the socialcontext batch system."),
+    batch_size: int = typer.Option(DEFAULT_BATCH_SIZE, help=f"Size of written data batches between {MIN_BATCH_SIZE} and {MAX_BATCH_SIZE}. " \
+        "Numbers out of range will be coerced to the valid minimum or maximum value without error"),
     profile: str = typer.Option(None, help="Read optons from a ~/.socialcontext.json profile"),
     options: Optional[List[str]] = typer.Option(None, help="Options reserved for administrative use."),
     models: List[Models] = typer.Argument(None, help="Classification models")
@@ -102,6 +106,7 @@ the --job-name parameter.
         'input_file': input_file,
         'content_type': content_type,
         'output_path': output_path,
+        'batch_size': batch_size,
         'models': models,
         'options': options
     }
@@ -115,4 +120,23 @@ def run(
 ):
     """Execute a pre-defined batch job by name."""
     r = client().run_job(job_name)
+    output(r.json())
+
+
+@app.command()
+def cancel(
+    job_name: str = typer.Argument(..., help="The unique name of the job.""")
+):
+    """Cancel a running job."""
+    info = { 'action': 'cancel' }
+    r = client().update_job(job_name, **info)
+    output(r.json())
+
+
+@app.command()
+def delete(
+    job_name: str = typer.Argument(..., help="The unique name of the job.""")
+):
+    """Delete a job."""
+    r = client().delete_job(job_name)
     output(r.json())

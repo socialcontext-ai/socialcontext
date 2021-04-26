@@ -14,6 +14,10 @@ from oauthlib.oauth2 import BackendApplicationClient
 from oauthlib.oauth2.rfc6749.errors import MissingTokenError
 from requests_oauthlib import OAuth2Session
 
+DEFAULT_BATCH_SIZE = 1000
+MIN_BATCH_SIZE = 500
+MAX_BATCH_SIZE = 5000
+
 logger = logging.getLogger('socialcontext')
 logger.addHandler(logging.StreamHandler(sys.stdout))
 logger.setLevel(logging.INFO)
@@ -134,6 +138,10 @@ class SocialcontextClient():
                 return self.client.get(f'{url}?{query}')
             elif method == 'post':
                 return self.client.post(url, json=data)
+            elif method == 'put':
+                return self.client.put(url, json=data)
+            elif method == 'delete':
+                return self.client.delete(url, json=data)
             else:
                 raise Exception('Unsupported dispatch method')
         except oauthlib.oauth2.rfc6749.errors.MissingTokenError:
@@ -146,6 +154,10 @@ class SocialcontextClient():
                 return self.client.get(f'{url}?{query}')
             elif method == 'post':
                 return self.client.post(url, json=data)
+            elif method == 'put':
+                return self.client.put(url, json=data)
+            elif method == 'delete':
+                return self.client.delete(url, json=data)
             else:
                 raise Exception('Unsupported dispatch method')
 
@@ -154,6 +166,12 @@ class SocialcontextClient():
 
     def post(self, url, data=None):
         return self.dispatch('post', url, data=data)
+
+    def put(self, url, data=None):
+        return self.dispatch('put', url, data=data)
+
+    def delete(self, url):
+        return self.dispatch('delete', url)
 
     def pathget(self, path, version='', **query):
         v = self.VER[version]
@@ -164,6 +182,16 @@ class SocialcontextClient():
         v = self.VER[version]
         url = f'{v}/{path}'
         return self.post(url, data=data)
+
+    def pathput(self, path, version='', data=None):
+        v = self.VER[version]
+        url = f'{v}/{path}'
+        return self.put(url, data=data)
+
+    def pathdelete(self, path, version=''):
+        v = self.VER[version]
+        url = f'{v}/{path}'
+        return self.delete(url)
 
     # API endpoints
 
@@ -193,13 +221,14 @@ class SocialcontextClient():
 
 
     def create_job(self, job_name, *, content_type='news', input_file=None, models=None,
-              output_path=None, options=None, version='v0.1a'):
+              output_path=None, batch_size=DEFAULT_BATCH_SIZE, options=None, version='v0.1a'):
         """Create a batch processing job."""
         r = self.pathpost('jobs', version, data={
             'job_name': job_name,
             'content_type': content_type,
             'input_file': input_file,
             'output_path': output_path,
+            'batch_size': batch_size,
             'models': models,
             'options': options
         })
@@ -210,6 +239,16 @@ class SocialcontextClient():
         r = self.pathpost('executions', version, data={
             'job_name': job_name
         }) 
+        return r
+
+    def update_job(self, job_name, *, version='v0.1a', **data):
+        """Create a job execution for a pre-defined job."""
+        r = self.pathput(f'jobs/{job_name}', version, data=data)
+        return r
+
+    def delete_job(self, job_name, *, version='v0.1a'):
+        """Delete a job."""
+        r = self.pathdelete(f'jobs/{job_name}', version)
         return r
 
     def jobs(self, *, job_name=None, version='v0.1a'):
