@@ -119,7 +119,8 @@ def run(
     job_name: str = typer.Argument(..., help="The unique name of the job.""")
 ):
     """Execute a pre-defined batch job by name."""
-    r = client().run_job(job_name)
+    info = { 'action': 'execute' }
+    r = client().update_job(job_name, **info)
     output(r.json())
 
 

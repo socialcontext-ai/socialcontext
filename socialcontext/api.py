@@ -145,7 +145,6 @@ class SocialcontextClient():
             else:
                 raise Exception('Unsupported dispatch method')
         except oauthlib.oauth2.rfc6749.errors.MissingTokenError:
-            logger.error('API Token error. Attempting to re-create client')
             self.clear_saved_token()
             token = self.fetch_api_token()
             self.token_saver(token)
@@ -234,12 +233,12 @@ class SocialcontextClient():
         })
         return r
 
-    def run_job(self, job_name, *, version='v0.1a'):
-        """Create a job execution for a pre-defined job."""
-        r = self.pathpost('executions', version, data={
-            'job_name': job_name
-        }) 
-        return r
+    #def run_job(self, job_name, *, version='v0.1a'):
+    #    """Create a job execution for a pre-defined job."""
+    #    r = self.pathpost('executions', version, data={
+    #        'job_name': job_name
+    #    }) 
+    #    return r
 
     def update_job(self, job_name, *, version='v0.1a', **data):
         """Create a job execution for a pre-defined job."""
