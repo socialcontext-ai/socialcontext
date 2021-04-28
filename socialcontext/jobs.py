@@ -77,7 +77,7 @@ def create(
         options = list(set(options))
     if job_name is None:
         account_info = client().account_info().json()
-        organization = account_info['data'].get('orgName')
+        organization = account_info.get('data', {}).get('orgName')
         if organization is None:
             message = 'Implicit job naming requires account to be configured ' \
                 'with an organization name. Please contact support.'
