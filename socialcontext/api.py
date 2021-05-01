@@ -33,6 +33,7 @@ KEY_DB = Path(__file__).parent / 'key'
 
 models = [
     'antivax',
+    'climate_action',
     'crime_violence',
     'diversity',
     'elite',
