@@ -4,7 +4,8 @@ from enum import Enum
 from .api import SocialcontextClient
 
 
-VERSION = 'v0.1a'
+#VERSION = 'v0.1a'
+VERSION = 'v1'
 BATCHES_BUCKET = 'socialcontext-batches'
 
 app_id = os.environ['SOCIALCONTEXT_APP_ID']
