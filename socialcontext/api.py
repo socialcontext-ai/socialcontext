@@ -179,10 +179,14 @@ class SocialcontextClient():
                 raise MissingToken
             return resp
         except (oauthlib.oauth2.rfc6749.errors.MissingTokenError, MissingToken):
+            print('clearing')
             self.clear_saved_token()
             token = self.fetch_api_token()
+            print(token)
             self.token_saver(token)
+            print('saved')
             self.client = self.create_client_for_token(token)
+            print(self.client)
             if method == 'get':
                 return self.client.get(f'{url}?{query}')
             elif method == 'post':
