@@ -34,7 +34,6 @@ def info(
 
 @app.command()
 def create(
-    job_name: str = typer.Option(None, help="Job name. Must be unique to account."),
     content_type: ContentTypes=typer.Option("news", help="Content type. Currently only news is supported.", autocompletion=complete_content_type),
     input_file: str = typer.Argument(..., help="File containing URLs. Must be readable by the socialcontext batch system."),
     output_path: str = typer.Option(None, help="Location to write output files.  Must be writeable by the socialcontext batch system."),
@@ -45,17 +44,6 @@ def create(
     models: List[Models] = typer.Argument(None, help="Classification models")
 ):
     """Submit a job for batch processing.
-
-    The job name is optional. If not provided, it will be created according to
-    the following pattern, based on the input file path:
-
-    s3://{Bucket}/{OrganizationName}/{JobName}/{InputFile}
-
-    If a job name is explicitly provided, it must meet the following criteria:
-      * May include forward slashes (/) in order to create a path-like
-        hierarchy of job organization.
-      * Must be a valid S3 key subpath name
-      * Spaces are not allowed and will be replaced with underscores (_)
 
     If an output path is not specified, the location of the input file will be used.
     The output path must be a writeable location by the socialcontext batch system.
@@ -105,13 +93,14 @@ def create(
         output_path = '/'.join(input_file.split('/')[:-1])
     info = {
         'input_file': input_file,
-        'content_type': content_type,
         'output_path': output_path,
+        'content_type': content_type,
         'batch_size': batch_size,
         'models': models,
         'options': options
     }
-    r = client().create_job(job_name, **info)
+    print(info)
+    r = client().create_job(**info)
     output(r.json())
 
 

@@ -84,22 +84,16 @@ class SocialcontextClient():
     def __init__(self, app_id, app_secret):
         self.app_id = app_id
         self.app_secret = app_secret
-        print(app_id)
-        print(app_secret)
         try:
             token = self.load_saved_token()
         except KeyError:
-            print('fetching token')
             token = self.fetch_api_token()
-            print(token)
             self.token_saver(token)
         self.client = self.create_client_for_token(token)
 
     def fetch_api_token(self):
         backend = BackendApplicationClient(client_id=self.app_id)
-        print(backend)
         oauth = OAuth2Session(client=backend)
-        print(oauth)
         try:
             token = oauth.fetch_token(
                 token_url=self.TOKEN_URL,
@@ -114,7 +108,6 @@ class SocialcontextClient():
         return token
 
     def create_client_for_token(self, token):
-        print(self.REFRESH_URL)
         return OAuth2Session(
             self.app_id,
             token=token,
@@ -123,15 +116,8 @@ class SocialcontextClient():
             token_updater=self.token_saver)
 
     def fernet(self, key):
-        print(key)
-        print(len(key))
-        print(len(key)%4)
         _key = key + "=" * (len(key) % 4)
-        print(_key)
-        print(len(_key))
         _key = base64.urlsafe_b64encode(base64.urlsafe_b64decode(_key))
-        print(_key)
-        print(len(_key))
         return Fernet(_key)
 
     def encrypt(self, data):
@@ -162,7 +148,6 @@ class SocialcontextClient():
                 del(db[self.app_id]) 
 
     def dispatch(self, method, url, data=None, **query):
-        print(method, url)
         query = urllib.parse.urlencode(query)
         try:
             if method =='get':
@@ -179,14 +164,10 @@ class SocialcontextClient():
                 raise MissingToken
             return resp
         except (oauthlib.oauth2.rfc6749.errors.MissingTokenError, MissingToken):
-            print('clearing')
             self.clear_saved_token()
             token = self.fetch_api_token()
-            print(token)
             self.token_saver(token)
-            print('saved')
             self.client = self.create_client_for_token(token)
-            print(self.client)
             if method == 'get':
                 return self.client.get(f'{url}?{query}')
             elif method == 'post':
@@ -199,9 +180,7 @@ class SocialcontextClient():
                 raise Exception('Unsupported dispatch method')
 
     def get(self, url, **query):
-        print(url, query)
         r = self.dispatch('get', url, **query)
-        print(r)
         return r
 
     def post(self, url, data=None):
@@ -216,7 +195,6 @@ class SocialcontextClient():
     def pathget(self, path, version='', **query):
         v = self.VER[version]
         url = f'{v}/{path}'
-        print(url)
         return self.get(url, **query) 
 
     def pathpost(self, path, version='', data=None):
@@ -261,23 +239,23 @@ class SocialcontextClient():
         return r
 
 
-    def create_job(self, job_name, *, content_type='news', input_file=None, models=None,
-              output_path=None, batch_size=DEFAULT_BATCH_SIZE, options=None, version='v1'):
+    def create_job(self, *, content_type='news', input_file=None,
+              output_path=None, models=None, batch_size=DEFAULT_BATCH_SIZE,
+              options=None, version='v1'):
         """Create a batch processing job."""
-        if options is None:
-            options = []
         if models is None:
             models = []
+        if options is None:
+            options = []
         if input_file is None:
             raise Exception('Input file required.')
         r = self.pathpost('jobs', version, data={
-            'job_name': job_name,
             'content_type': content_type,
             'input_file': input_file,
             'output_path': output_path,
             'batch_size': batch_size,
-            'models': models,
-            'options': options
+            'options': options,
+            'models': models
         })
         return r
 
@@ -293,7 +271,7 @@ class SocialcontextClient():
         r = self.pathput(f'jobs/{job_name}', version, data=data)
         return r
 
-    def delete_job(self, job_name, *, version='v0.1a'):
+    def delete_job(self, job_name, *, version='v1'):
         """Delete a job."""
         r = self.pathdelete(f'jobs/{job_name}', version)
         return r
@@ -304,8 +282,6 @@ class SocialcontextClient():
             r = self.pathget(f'jobs/{job_name}', version)
         else:
             r = self.pathget(f'jobs', version)
-            print(r)
-            print(r.json())
         return r
 
     def makeclient(self, client_name, version='v0.1'):
