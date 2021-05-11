@@ -214,9 +214,6 @@ class SocialcontextClient():
 
     # API endpoints
 
-    def openapi(self):
-        return self.get(f'{self.API_ROOT}/docs/openapi.json')
-
     def classify(self, content_type, *, models=None, url=None, text=None, version='v0.1a'):
         if url:
             reqtype = 'url'
@@ -266,8 +263,8 @@ class SocialcontextClient():
     #    }) 
     #    return r
 
-    def update_job(self, job_name, *, version='v0.1a', **data):
-        """Create a job execution for a pre-defined job."""
+    def update_job(self, job_name, *, version='v1', **data):
+        """Update a pre-defined job."""
         r = self.pathput(f'jobs/{job_name}', version, data=data)
         return r
 

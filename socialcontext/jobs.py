@@ -99,7 +99,6 @@ def create(
         'models': models,
         'options': options
     }
-    print(info)
     r = client().create_job(**info)
     output(r.json())
 
@@ -108,8 +107,8 @@ def create(
 def run(
     job_name: str = typer.Argument(..., help="The unique name of the job.""")
 ):
-    """Execute a pre-defined batch job by name."""
-    info = { 'action': 'execute' }
+    """Schedule a previously cancelled or failed batch job for execution."""
+    info = { 'action': 'schedule' }
     r = client().update_job(job_name, **info)
     output(r.json())
 

@@ -25,21 +25,6 @@ def version():
 
 
 @app.command()
-def openapi():
-    """Get the openapi specification."""
-    r = client().openapi()
-    output(r.json())
-
-
-@app.command()
-def models():
-    """List supported classification inference models."""
-    r = client().openapi()
-    for model in r.json()['definitions']['ClassificationModelEnum']['enum']:
-        typer.echo(model)
-
-
-@app.command()
 def classify(
     content_type: ContentTypes=typer.Option("news", help="Content type. Currently only news is supported.", autocompletion=complete_content_type),
     url: str = typer.Option("", help="Web URL to classify"),
