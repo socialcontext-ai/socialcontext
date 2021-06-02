@@ -20,7 +20,7 @@ MAX_BATCH_SIZE = 5000
 
 logger = logging.getLogger('socialcontext')
 logger.addHandler(logging.StreamHandler(sys.stdout))
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 class InvalidRequest(Exception):
     ...
@@ -104,7 +104,6 @@ class SocialcontextClient():
             # oauthlib gives the same error regardless of the problem
             print('Something went wrong, please check your client credentials.')
             raise
-            exit()
         return token
 
     def create_client_for_token(self, token):
@@ -160,7 +159,7 @@ class SocialcontextClient():
                 resp = self.client.delete(url, json=data)
             else:
                 raise Exception('Unsupported dispatch method')
-            if resp.status_code == 400:
+            if resp.status_code in [400, 401, 403]:
                 raise MissingToken
             return resp
         except (oauthlib.oauth2.rfc6749.errors.MissingTokenError, MissingToken):

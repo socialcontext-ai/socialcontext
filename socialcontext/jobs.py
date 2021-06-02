@@ -90,7 +90,7 @@ def create(
     #        sys.exit()
     #    job_name = match.group(1)
     if output_path is None:
-        output_path = '/'.join(input_file.split('/')[:-1])
+        output_path = '/'.join(input_file.split('/')[:-1]) + '/'
     info = {
         'input_file': input_file,
         'output_path': output_path,

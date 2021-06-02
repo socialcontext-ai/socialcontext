@@ -90,7 +90,7 @@ class DownloadFileTypes(str, Enum):
 def download(
     path: str = typer.Argument(..., help="s3 output folder to download"),
     output_file: typer.FileTextWrite = typer.Option(None, help="Output file to write."),
-    file_type: DownloadFileTypes = typer.Option(None, help="Type of output files to download.")
+    file_type: DownloadFileTypes = typer.Option('data', help="Type of output files to download.")
 ):
     """Download the output data from a batch job output location.  Downloads
     job output as a single stream and does the work of stripping CSV headers
@@ -103,20 +103,22 @@ def download(
     s3 = s3_resource()
     s3_client = s3.meta.client
     bucket, path = parse_path(path)
-    path = path.rstrip('/') + '/'
+    #path = path.rstrip('/')
+    #if file_type == 'data':
+    #    path = f'{path}/data/'
+    #elif file_type == 'errors':
+    #    path = f'{path}/errors/'
+    #else:
+    #    raise Exception(f'Unexpected file type: {file_type}')
     response = s3_client.list_objects(Bucket=bucket, Prefix=path)
-    data_files = []
-    error_files = []
+    files = []
     for item in response.get('Contents', []):
         key = item['Key']
         name = key.split('/')[-1]
-        if name.startswith('data-'):
-            data_files.append(key)
-        elif name.startswith('errors-'):
-            error_files.append(key)
-    data_files = sorted(data_files)
-    error_files = sorted(error_files)
-    for df_i, key in enumerate(data_files):
+        if name.startswith(f'{file_type}-'):
+            files.append(key)
+    files = sorted(files)
+    for df_i, key in enumerate(files):
         fn = f's3://{bucket}/{key}'
         for i, line in enumerate(iterate_file(bucket, key)):
             if df_i > 0 and i == 0: # skip headers after the first file
