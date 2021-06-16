@@ -81,16 +81,16 @@ setup(
         socialcontext=socialcontext.cli:run
     """,
     install_requires=[
-        'cryptography',
-        'requests-oauthlib',
-        'python-dotenv',
-        'pydantic',
-        'rich',
-        'typer',
+        'cryptography>=3.4.7',
+        'requests-oauthlib>=1.3.0',
+        'python-dotenv>=0.17.1',
+        'pydantic>=1.8.1',
+        'rich>=10.1.0',
+        'typer>=0.3.2',
     ],
     extras_require={
         'test': ['pytest'],
-        'aws': ['boto3']
+        'aws': ['boto3>=1.17.71']
     },
     tests_require=['socialcontext[test]'],
 )
