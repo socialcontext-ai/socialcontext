@@ -1,10 +1,9 @@
 import json
 import os
 from enum import Enum
-from .api import SocialcontextClient
+from .api import SocialcontextClient, VERSION
 
 
-VERSION = 'v1'
 BATCHES_BUCKET = 'socialcontext-batches'
 
 app_id = os.environ['SOCIALCONTEXT_APP_ID']

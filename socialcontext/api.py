@@ -14,6 +14,8 @@ from oauthlib.oauth2 import BackendApplicationClient
 from oauthlib.oauth2.rfc6749.errors import MissingTokenError
 from requests_oauthlib import OAuth2Session
 
+VERSION = 'v1'
+
 DEFAULT_BATCH_SIZE = 1000
 MIN_BATCH_SIZE = 500
 MAX_BATCH_SIZE = 5000
@@ -70,16 +72,12 @@ class SocialcontextClient():
     API_ROOT = os.environ.get(
         'SOCIALCONTEXT_API_ROOT',
         'https://api.socialcontext.ai')
-
-    VER = {
-        '': API_ROOT,
-        'v0.1a': f'{API_ROOT}/v0.1a',
-        'v0.1': f'{API_ROOT}/v0.1',
-        'v1': f'{API_ROOT}/v1'
-    }
-    TOKEN_URL = f'{VER["v1"]}/token'
-    REFRESH_URL = f'{VER["v1"]}/token-refresh'
+    TOKEN_URL = f"{API_ROOT}/{VERSION}/token"
+    REFRESH_URL = f"{API_ROOT}/{VERSION}/token-refresh"
     _news = None
+
+    def prefix(self, version):
+        return f"{self.API_ROOT}/{version}"
 
     def __init__(self, app_id, app_secret):
         self.app_id = app_id
@@ -147,7 +145,7 @@ class SocialcontextClient():
                 del(db[self.app_id]) 
 
     def dispatch(self, method, url, data=None, **query):
-        print(url)
+        logger.debug(f"Fetching URL {url}; method: {method}")
         query = urllib.parse.urlencode(query)
         try:
             if method =='get':
@@ -160,7 +158,6 @@ class SocialcontextClient():
                 resp = self.client.delete(url, json=data)
             else:
                 raise Exception('Unsupported dispatch method')
-            print(resp.status_code)
             if resp.status_code in [400, 401, 403]:
                 raise MissingToken
             return resp
@@ -193,53 +190,53 @@ class SocialcontextClient():
     def delete(self, url):
         return self.dispatch('delete', url)
 
-    def pathget(self, path, version='', **query):
-        v = self.VER[version]
-        url = f'{v}/{path}'
+    def pathget(self, path, version=VERSION, **query):
+        prefix = self.prefix(version)
+        url = f'{prefix}/{path}'
         return self.get(url, **query) 
 
-    def pathpost(self, path, version='', data=None):
-        v = self.VER[version]
-        url = f'{v}/{path}'
+    def pathpost(self, path, version=VERSION, data=None):
+        prefix = self.prefix(version)
+        url = f'{prefix}/{path}'
         return self.post(url, data=data)
 
-    def pathput(self, path, version='', data=None):
-        v = self.VER[version]
-        url = f'{v}/{path}'
+    def pathput(self, path, version=VERSION, data=None):
+        prefix = self.prefix(version)
+        url = f'{prefix}/{path}'
         return self.put(url, data=data)
 
-    def pathdelete(self, path, version=''):
-        v = self.VER[version]
-        url = f'{v}/{path}'
+    def pathdelete(self, path, version=VERSION):
+        prefix = self.prefix(version)
+        url = f'{prefix}/{path}'
         return self.delete(url)
 
     # API endpoints
 
-    def classify(self, content_type, *, models=None, url=None, text=None, version='v0.1a'):
-        if url:
-            reqtype = 'url'
-            content = url
-        elif text:
-            reqtype = 'text'
-            content = text
-        else:
-            raise InvalidRequest('url or text parameter required')
-        r = self.pathpost(f'{content_type}/classify', version, data={
-            reqtype: content, 'models': models
-        })
-        if r.status_code == 403:
-            raise Unauthorized
-        return r
+    #def classify(self, content_type, *, models=None, url=None, text=None, version='v0.1a'):
+    #    if url:
+    #        reqtype = 'url'
+    #        content = url
+    #    elif text:
+    #        reqtype = 'text'
+    #        content = text
+    #    else:
+    #        raise InvalidRequest('url or text parameter required')
+    #    r = self.pathpost(f'{content_type}/classify', version, data={
+    #        reqtype: content, 'models': models
+    #    })
+    #    if r.status_code == 403:
+    #        raise Unauthorized
+    #    return r
 
-    def account_info(self, version='v0.1a'):
-        """Get info for user account."""
-        r = self.pathget('account', version)
-        return r
+    #def account_info(self, version='v0.1a'):
+    #    """Get info for user account."""
+    #    r = self.pathget('account', version)
+    #    return r
 
 
     def create_job(self, *, content_type='news', input_file=None,
               output_path=None, models=None, batch_size=DEFAULT_BATCH_SIZE,
-              options=None, version='v1'):
+              options=None, version=VERSION):
         """Create a batch processing job."""
         if models is None:
             models = []
@@ -257,24 +254,17 @@ class SocialcontextClient():
         })
         return r
 
-    #def run_job(self, job_name, *, version='v0.1a'):
-    #    """Create a job execution for a pre-defined job."""
-    #    r = self.pathpost('executions', version, data={
-    #        'job_name': job_name
-    #    }) 
-    #    return r
-
-    def update_job(self, job_name, *, version='v1', **data):
+    def update_job(self, job_name, *, version=VERSION, **data):
         """Update a pre-defined job."""
         r = self.pathput(f'jobs/{job_name}', version, data=data)
         return r
 
-    def delete_job(self, job_name, *, version='v1'):
+    def delete_job(self, job_name, *, version=VERSION):
         """Delete a job."""
         r = self.pathdelete(f'jobs/{job_name}', version)
         return r
 
-    def jobs(self, *, job_name=None, version='v1'):
+    def jobs(self, *, job_name=None, version=VERSION):
         """List jobs or show details of a specified job."""
         if job_name:
             r = self.pathget(f'jobs/{job_name}', version)
@@ -282,24 +272,24 @@ class SocialcontextClient():
             r = self.pathget(f'jobs', version)
         return r
 
-    def makeclient(self, client_name, version='v0.1'):
-        r = self.pathpost('clients', version, data={
-            'name': client_name}) 
-        if r.status_code == 403:
-            raise Unauthorized
-        return r
+    #def makeclient(self, client_name, version='v0.1'):
+    #    r = self.pathpost('clients', version, data={
+    #        'name': client_name}) 
+    #    if r.status_code == 403:
+    #        raise Unauthorized
+    #    return r
 
-    def clients(self, version='v0.1'):
-        r = self.pathget('clients', version)
-        if r.status_code == 403:
-            raise Unauthorized
-        return r
+    #def clients(self, version='v0.1'):
+    #    r = self.pathget('clients', version)
+    #    if r.status_code == 403:
+    #        raise Unauthorized
+    #    return r
 
-    @property
-    def news(self):
-        if self._news is None:
-            self._news = type('news', (object,), {
-                'classify': partial(self.classify, 'news'),
-                'batch': partial(self.batch, 'news')
-            })
-        return self._news()
+    #@property
+    #def news(self):
+    #    if self._news is None:
+    #        self._news = type('news', (object,), {
+    #            'classify': partial(self.classify, 'news'),
+    #            'batch': partial(self.batch, 'news')
+    #        })
+    #    return self._news()
