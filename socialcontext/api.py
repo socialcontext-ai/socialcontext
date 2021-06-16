@@ -69,7 +69,7 @@ class SocialcontextClient():
 
     API_ROOT = os.environ.get(
         'SOCIALCONTEXT_API_ROOT',
-        'https://beta.socialcontext.ai')
+        'https://api.socialcontext.ai')
 
     VER = {
         '': API_ROOT,
@@ -147,6 +147,7 @@ class SocialcontextClient():
                 del(db[self.app_id]) 
 
     def dispatch(self, method, url, data=None, **query):
+        print(url)
         query = urllib.parse.urlencode(query)
         try:
             if method =='get':
@@ -159,6 +160,7 @@ class SocialcontextClient():
                 resp = self.client.delete(url, json=data)
             else:
                 raise Exception('Unsupported dispatch method')
+            print(resp.status_code)
             if resp.status_code in [400, 401, 403]:
                 raise MissingToken
             return resp
