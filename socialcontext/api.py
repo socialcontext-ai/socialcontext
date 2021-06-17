@@ -38,37 +38,7 @@ class MissingToken(Exception):
     ...
 
 
-KEY_DB = Path(__file__).parent / "key"
-
-
-models = [
-    "antivax",
-    "climate_action",
-    "crime_violence",
-    "diversity",
-    "elite",
-    "emerging",
-    "fake_news",
-    "female_sports",
-    "fetch_error",
-    "gender_equality",
-    "injuries",
-    "latinx",
-    "lgbt",
-    "low_cred",
-    "male_sports",
-    "mental_health",
-    "military",
-    "online_partisan",
-    "political",
-    "profanity",
-    "provax",
-    "renewable_energy",
-    "sexually_explicit",
-    "traditional",
-    "vice",
-    "wire",
-]
+KEY_DB = Path(__file__).parent / ".key"
 
 
 class SocialcontextClient:
@@ -148,6 +118,10 @@ class SocialcontextClient:
         self, method: str, url: str, data: dict = None, **query
     ) -> requests.Response:
         logger.debug(f"Fetching URL {url}; method: {method}")
+        if data is not None:
+            logger.debug(f"data: {data}")
+        if query:
+            logger.debug(f"query: {query}")
         querystr = urllib.parse.urlencode(query)
         try:
             if method == "get":
@@ -271,3 +245,7 @@ class SocialcontextClient:
         else:
             r = self.pathget(f"jobs", version)
         return r
+
+    def models(self) -> requests.Response:
+        """List supported inference models."""
+        return self.pathget("models")

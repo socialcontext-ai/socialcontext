@@ -1,10 +1,12 @@
 import json
 import os
 from enum import Enum
+from pathlib import Path
 from .api import SocialcontextClient, VERSION
 
 
 BATCHES_BUCKET = "socialcontext-batches"
+MODELS_CACHE = Path(__file__).parent / ".models"
 
 app_id = os.environ["SOCIALCONTEXT_APP_ID"]
 app_secret = os.environ["SOCIALCONTEXT_APP_SECRET"]
@@ -39,28 +41,21 @@ def output(data, *, filename=None, indent=4):
             json.dump(data, f, indent=indent, ensure_ascii=False)
 
 
-class Models(str, Enum):
-    antivax = "antivax"
-    crime_violence = "crime_violence"
-    diversity = "diversity"
-    elite = "elite"
-    emerging = "emerging"
-    fake_news = "fake_news"
-    female_sports = "female_sports"
-    fetch_error = "fetch_error"
-    gender_equality = "gender_equality"
-    injuries = "injuries"
-    latinx = "latinx"
-    lgbt = "lgbt"
-    low_cred = "low_cred"
-    male_sports = "male_sports"
-    military = "military"
-    online_partisan = "online_partisan"
-    political = "political"
-    profanity = "profanity"
-    provax = "provax"
-    renewable_energy = "renewable_energy"
-    sexually_explicit = "sexually_explicit"
-    traditional = "traditional"
-    vice = "vice"
-    wire = "wire"
+def cache_models():
+    r = client().models().json()
+    with open(MODELS_CACHE, 'w') as f:
+        json.dump(r, f)
+    return r
+
+
+_models = None
+def Models():
+    """Return an enum of supported models from the models cache."""
+    global _models
+    if _models is None:
+        try:
+            with open(MODELS_CACHE) as f:
+                _models = json.load(f)["models"]
+        except:
+            _models = cache_models()["models"]
+    return Enum("Models", { m:m for m in _models })

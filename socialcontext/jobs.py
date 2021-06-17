@@ -41,7 +41,7 @@ def create(
         "Numbers out of range will be coerced to the valid minimum or maximum value without error"),
     profile: str = typer.Option(None, help="Read optons from a ~/.socialcontext.json profile"),
     options: Optional[List[str]] = typer.Option(None, help="Options reserved for administrative use."),
-    models: List[Models] = typer.Argument(None, help="Classification models")
+    models: List[Models()] = typer.Argument(None, help="Classification models")
 ):
     """Submit a job for batch processing.
 
@@ -53,7 +53,11 @@ def create(
     which contains a list of models that will be merged with any models
     specified on the command line.
     """
-    models = list(models) or []
+    content_type = content_type.value
+    if models:
+        models = [m.value for m in models]
+    else:
+        models = []
     options = list(options) or []
     if profile:
         home = expanduser("~")

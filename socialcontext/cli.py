@@ -6,7 +6,7 @@ from enum import Enum
 from typing import List
 from gzip import GzipFile
 import typer
-from .utils import ContentTypes, complete_content_type, output, Models
+from .utils import ContentTypes, complete_content_type, output, Models, cache_models
 from .utils import VERSION, client
 from . import jobs
 
@@ -22,6 +22,12 @@ def version():
 
 
 @app.command()
+def models():
+    """Get the list of currently supported classification models."""
+    output(cache_models())
+
+
+@app.command()
 def classify(
     content_type: ContentTypes = typer.Option(
         "news",
@@ -30,7 +36,7 @@ def classify(
     ),
     url: str = typer.Option("", help="Web URL to classify"),
     text: str = typer.Option("", help="Text to classify"),
-    models: List[Models] = typer.Argument(..., help="classification models"),
+    models: List[Models()] = typer.Argument(..., help="classification models"),
 ):
     """Classify provided text or text extracted from a provided URL.
 
