@@ -23,7 +23,7 @@ MAX_BATCH_SIZE = 5000
 
 logger = logging.getLogger("socialcontext")
 logger.addHandler(logging.StreamHandler(sys.stdout))
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 class InvalidRequest(Exception):
@@ -115,23 +115,23 @@ class SocialcontextClient:
                 del db[self.app_id]
 
     def dispatch(
-        self, method: str, url: str, data: dict = None, **query
+        self, _method: str, _url: str, data: dict = None, **query
     ) -> requests.Response:
-        logger.debug(f"Fetching URL {url}; method: {method}")
+        logger.debug(f"Fetching URL {_url}; method: {_method}")
         if data is not None:
             logger.debug(f"data: {data}")
         if query:
             logger.debug(f"query: {query}")
         querystr = urllib.parse.urlencode(query)
         try:
-            if method == "get":
-                resp = self.client.get(f"{url}?{querystr}")
-            elif method == "post":
-                resp = self.client.post(url, json=data)
-            elif method == "put":
-                resp = self.client.put(url, json=data)
-            elif method == "delete":
-                resp = self.client.delete(url, json=data)
+            if _method == "get":
+                resp = self.client.get(f"{_url}?{querystr}")
+            elif _method == "post":
+                resp = self.client.post(_url, json=data)
+            elif _method == "put":
+                resp = self.client.put(_url, json=data)
+            elif _method == "delete":
+                resp = self.client.delete(_url, json=data)
             else:
                 raise Exception("Unsupported dispatch method")
             if resp.status_code in [400, 401, 403]:
@@ -142,34 +142,34 @@ class SocialcontextClient:
             token = self.fetch_api_token()
             self.token_saver(token)
             self.client = self.create_client_for_token(token)
-            if method == "get":
-                return self.client.get(f"{url}?{querystr}")
-            elif method == "post":
-                return self.client.post(url, json=data)
-            elif method == "put":
-                return self.client.put(url, json=data)
-            elif method == "delete":
-                return self.client.delete(url, json=data)
+            if _method == "get":
+                return self.client.get(f"{_url}?{querystr}")
+            elif _method == "post":
+                return self.client.post(_url, json=data)
+            elif _method == "put":
+                return self.client.put(_url, json=data)
+            elif _method == "delete":
+                return self.client.delete(_url, json=data)
             else:
                 raise Exception("Unsupported dispatch method")
 
-    def get(self, url: str, **query) -> requests.Response:
-        r = self.dispatch("get", url, **query)
+    def get(self, _url: str, **query) -> requests.Response:
+        r = self.dispatch("get", _url, **query)
         return r
 
-    def post(self, url: str, data=None) -> requests.Response:
-        return self.dispatch("post", url, data=data)
+    def post(self, _url: str, data=None) -> requests.Response:
+        return self.dispatch("post", _url, data=data)
 
-    def put(self, url: str, data=None) -> requests.Response:
-        return self.dispatch("put", url, data=data)
+    def put(self, _url: str, data=None) -> requests.Response:
+        return self.dispatch("put", _url, data=data)
 
-    def delete(self, url: str) -> requests.Response:
-        return self.dispatch("delete", url)
+    def delete(self, _url: str) -> requests.Response:
+        return self.dispatch("delete", _url)
 
     def pathget(self, path: str, version: str = VERSION, **query) -> requests.Response:
         prefix = self.prefix(version)
-        url = f"{prefix}/{path}"
-        return self.get(url, **query)
+        _url = f"{prefix}/{path}"
+        return self.get(_url, **query)
 
     def pathpost(
         self, path: str, version: str = VERSION, data: dict = None
@@ -249,3 +249,16 @@ class SocialcontextClient:
     def models(self) -> requests.Response:
         """List supported inference models."""
         return self.pathget("models")
+
+    def classify(self, content_type, models=None, url=None, text=None) -> requests.Response:
+        """Classify a url for the given models."""
+        if url:
+            return self.pathpost("classify", data={
+                "url": url,
+                "models": [m.value for m in models] })
+        elif text:
+            return self.pathpost("classify", data={
+                "text": text,
+                "models": [m.value for m in models] })
+        else:
+            raise InvalidRequest("Either url or text must be provided.")

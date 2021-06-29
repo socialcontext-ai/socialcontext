@@ -1,4 +1,17 @@
-# socialcontext
+# The socialcontext.ai Python client library with CLI
+
+For full reference documentation of the socialcontex.ai API, see the
+[API docs](https://api.socialcontext.ai/v1/docs/api)
+
+
+## Contents
+
+ * Installation
+ * Using the client library
+ * Using the CLI
+
+
+## Installation
 
 Client library for the socialcontext.ai web API
 
@@ -7,39 +20,126 @@ Client library for the socialcontext.ai web API
 ```
 
 
-## Usage
-
-**Note:** It is strongly recommended to run only a single client instance of a
-given API client in a production scenario. Due to OAuth token refreshes,
-running multiple clients with the same credentials can cause authentication
-errors.
-
+## Using the client library
 
 ### Instantiate a client
 
 ```
->>> from socialcontext.api import SocialcontextClient
->>> client = SocialcontextClient(APPLICATION_ID, APPLICATION_SECRET)
+from socialcontext.api import SocialcontextClient
+client = SocialcontextClient(APPLICATION_ID, APPLICATION_SECRET)
 ```
 
 
-### Classify the content of a web page
+### List jobs
 
 ```
->>> url = 'https://www.cnn.com/2020/11/24/politics/biden-cabinet-nominees-event/index.html'
->>> resp = client.classify(url=url)
+job_list = client.jobs().json()['jobs']
 ```
 
-### Classify text
+### Create a batch classification job
 
 ```
->>> text = "Pope Francis Appoints First African-American Cardinal Wilton Gregory, the archbishop of Washington, was among 13 new cardinals named on Sunday."
->>> resp = client.classify('news', models=['diversity', 'crime_violence', text=text)
+job = client.create_job(
+    input_file='s3://socialcontext-batches/AcmeInc/Job01/urls.txt.gz',
+    output_path='s3://socialcontext-batches/AcmeInc/Job01/',
+    models=['antivax', 'provax']
+)
 ```
 
-## Development
+### Submit the job for execution
 
 ```
- $ pip install -e '.[test]'
+client.update_job(job['job_id'], action='schedule')
 ```
 
+### Check the status of the job
+
+Get current info about the job, including:
+
+ * status
+ * locations of output files written
+ * count of URLs processed
+ * count of batches written
+
+```
+info = client.jobs(job['job_id']).json()
+```
+
+### Cancel the running job
+
+```
+client.update_job(job['job_id'], action='cancel')
+```
+
+### Delete the job
+
+```
+client.delete_job(job['job_id'])
+```
+
+## Using the CLI
+
+Client library for the socialcontext.ai web API.
+
+The CLI will read credentials from the environment. Be sure to set these environment
+variables:
+
+```
+SOCIALCONTEXT_APP_ID
+SOCIALCONTEXT_APP_SECRET
+```
+
+### Get help for the CLI
+
+In general, see the command line help and subcommand-specific help for details not
+covered here.
+
+```
+ $ socialcontext --help
+ $ socialcontext jobs --help
+```
+
+### List supported classification models
+
+```
+ $ socialcontext models
+```
+
+
+### List jobs
+
+```
+ $ socialcontext jobs list
+```
+
+### Create a batch classification job
+
+E.g., a classification job for antivax and provax:
+
+```
+ $ socialcontext jobs create s3://socialcontext-batches/AcmeInc/Job01/urls.txt.gz --output-path s3://socialcontext-batches/AcmeInc/Job01/ antivax provax
+```
+
+### Submit the job for execution
+
+```
+ $ socialcontext jobs run $JOB_ID
+```
+
+### Get job info
+
+```
+ $ socialcontext jobs info $JOB_ID
+```
+
+### Cancel the running job
+
+```
+ $ socialcontext jobs cancel $JOB_ID
+```
+
+### Delete the job
+
+```
+ $ socialcontext jobs delete $JOB_ID
+```
