@@ -42,6 +42,7 @@ def classify(
 
     One of either --url or --text must be provided.
     """
+    models = [m.value for m in models]
     if url:
         r = client().classify(content_type, models=models, url=url)
     elif text:

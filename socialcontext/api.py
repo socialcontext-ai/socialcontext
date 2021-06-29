@@ -255,10 +255,10 @@ class SocialcontextClient:
         if url:
             return self.pathpost("classify", data={
                 "url": url,
-                "models": [m.value for m in models] })
+                "models": models })
         elif text:
             return self.pathpost("classify", data={
                 "text": text,
-                "models": [m.value for m in models] })
+                "models": models })
         else:
             raise InvalidRequest("Either url or text must be provided.")
