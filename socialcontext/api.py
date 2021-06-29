@@ -225,23 +225,23 @@ class SocialcontextClient:
         return r
 
     def update_job(
-        self, job_name: str, *, version: str = VERSION, **data
+        self, job_id: str, *, version: str = VERSION, **data
     ) -> requests.Response:
         """Update a pre-defined job."""
-        r = self.pathput(f"jobs/{job_name}", version, data=data)
+        r = self.pathput(f"jobs/{job_id}", version, data=data)
         return r
 
-    def delete_job(self, job_name: str, *, version: str = VERSION) -> requests.Response:
+    def delete_job(self, job_id: str, *, version: str = VERSION) -> requests.Response:
         """Delete a job."""
-        r = self.pathdelete(f"jobs/{job_name}", version)
+        r = self.pathdelete(f"jobs/{job_id}", version)
         return r
 
     def jobs(
-        self, *, job_name: str = None, version: str = VERSION
+        self, *, job_id: str = None, version: str = VERSION
     ) -> requests.Response:
         """List jobs or show details of a specified job."""
-        if job_name:
-            r = self.pathget(f"jobs/{job_name}", version)
+        if job_id:
+            r = self.pathget(f"jobs/{job_id}", version)
         else:
             r = self.pathget(f"jobs", version)
         return r

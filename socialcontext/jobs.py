@@ -25,10 +25,10 @@ def list_():
 
 @app.command()
 def info(
-    job_name: str = typer.Argument(..., help="Job name.")
+    job_id: str = typer.Argument(..., help="Job ID.")
 ):
-    """Show details for a job specified by name."""
-    r = client().jobs(job_name=job_name)
+    """Show details for a job specified by ID."""
+    r = client().jobs(job_id=job_id)
     output(r.json())
 
 
@@ -67,32 +67,6 @@ def create(
         models = list(set(models))
         options += profile_info.get('options', [])
         options = list(set(options))
-    #if job_name is None:
-    #    account_info = client().account_info().json()
-    #    organization = account_info.get('data', {}).get('orgName')
-    #    if organization is None:
-    #        message = 'Implicit job naming requires account to be configured ' \
-    #            'with an organization name. Please contact support.'
-    #        typer.echo(typer.style(message, fg=typer.colors.RED, bold=True))
-    #        typer.echo(message)
-    #        sys.exit()
-    #    pattern = re.compile(f's3://{BATCHES_BUCKET}/{organization}/(.+)/(?:.+)')
-    #    match = pattern.match(input_file)
-    #    if match is None:
-    #        message = f"""
-    """
-    Implicit job naming is currently only supported for input files of the format:
-
-        s3://{BATCHES_BUCKET}/{organization}/JOB_NAME/INPUT_FILE
-
-    If your input file does not match this scheme, please specify the job name with
-    the --job-name parameter.
-    """
-    #        typer.echo(typer.style("\nInvalid implicit job name.",
-    #            fg=typer.colors.RED, bold=True))
-    #        typer.echo(message)
-    #        sys.exit()
-    #    job_name = match.group(1)
     if output_path is None:
         output_path = '/'.join(input_file.split('/')[:-1]) + '/'
     info = {
@@ -109,28 +83,28 @@ def create(
 
 @app.command()
 def run(
-    job_name: str = typer.Argument(..., help="The unique name of the job.""")
+    job_id: str = typer.Argument(..., help="The unique ID of the job.""")
 ):
     """Schedule a previously cancelled or failed batch job for execution."""
     info = { 'action': 'schedule' }
-    r = client().update_job(job_name, **info)
+    r = client().update_job(job_id, **info)
     output(r.json())
 
 
 @app.command()
 def cancel(
-    job_name: str = typer.Argument(..., help="The unique name of the job.""")
+    job_id: str = typer.Argument(..., help="The unique ID of the job.""")
 ):
     """Cancel a running job."""
     info = { 'action': 'cancel' }
-    r = client().update_job(job_name, **info)
+    r = client().update_job(job_id, **info)
     output(r.json())
 
 
 @app.command()
 def delete(
-    job_name: str = typer.Argument(..., help="The unique name of the job.""")
+    job_id: str = typer.Argument(..., help="The unique ID of the job.""")
 ):
     """Delete a job."""
-    r = client().delete_job(job_name)
+    r = client().delete_job(job_id)
     output(r.json())
