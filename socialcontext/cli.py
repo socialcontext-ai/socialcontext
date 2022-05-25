@@ -36,13 +36,14 @@ def classify(
     ),
     url: str = typer.Option("", help="Web URL to classify"),
     text: str = typer.Option("", help="Text to classify"),
-    models: List[Models()] = typer.Argument(..., help="classification models"),
+    #models: List[Models()] = typer.Argument(..., help="classification models"),
+    models: List[str] = typer.Argument(..., help="classification models"),
 ):
     """Classify provided text or text extracted from a provided URL.
 
     One of either --url or --text must be provided.
     """
-    models = [m.value for m in models]
+    #models = [m.value for m in models]
     if url:
         r = client().classify(content_type, models=models, url=url)
     elif text:

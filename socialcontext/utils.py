@@ -58,4 +58,4 @@ def Models():
                 _models = json.load(f)["models"]
         except:
             _models = cache_models()["models"]
-    return Enum("Models", { m:m for m in _models })
+    return Enum("Models", { m["identifier"]:m["identifier"] for m in _models })

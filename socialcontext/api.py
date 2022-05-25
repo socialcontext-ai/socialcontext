@@ -253,11 +253,11 @@ class SocialcontextClient:
     def classify(self, content_type, models=None, url=None, text=None) -> requests.Response:
         """Classify a url for the given models."""
         if url:
-            return self.pathpost("classify", data={
+            return self.pathpost("classify-content", data={
                 "url": url,
                 "models": models })
         elif text:
-            return self.pathpost("classify", data={
+            return self.pathpost("classify-content", data={
                 "text": text,
                 "models": models })
         else:
