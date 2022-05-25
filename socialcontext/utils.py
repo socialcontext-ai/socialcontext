@@ -55,7 +55,7 @@ def Models():
     if _models is None:
         try:
             with open(MODELS_CACHE) as f:
-                _models = json.load(f)["models"]
+                _models = json.load(f)["content_models"]
         except:
-            _models = cache_models()["models"]
+            _models = cache_models()["content_models"]
     return Enum("Models", { m["identifier"]:m["identifier"] for m in _models })
