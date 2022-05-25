@@ -34,20 +34,27 @@ def classify(
         help="Content type. Currently only news is supported.",
         autocompletion=complete_content_type,
     ),
-    url: str = typer.Option("", help="Web URL to classify"),
-    text: str = typer.Option("", help="Text to classify"),
+    url: str = typer.Option("", help="Web URL to classify."),
+    text: str = typer.Option("", help="Text to classify."),
     #models: List[Models()] = typer.Argument(..., help="classification models"),
-    models: List[str] = typer.Argument(..., help="classification models"),
+    content_model: List[str] = typer.Option(..., help="Content model(s).")
+    #models: List[str] = typer.Argument(..., help="classification models"),
 ):
     """Classify provided text or text extracted from a provided URL.
 
     One of either --url or --text must be provided.
+
+    To specify multiple content models, pass --content_model multiple times or specify
+    a comma separated list of models (E.g. `--content-model climate_action,diversity`)
     """
     #models = [m.value for m in models]
+    content_models = []
+    for m in content_model:
+        content_models += m.split(",")
     if url:
-        r = client().classify(content_type, models=models, url=url)
+        r = client().classify(content_type, content_models=content_models, url=url)
     elif text:
-        r = client().classify(content_type, models=models, text=text)
+        r = client().classify(content_type, content_models=content_models, text=text)
     else:
         typer.echo(
             typer.style(

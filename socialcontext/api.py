@@ -250,15 +250,15 @@ class SocialcontextClient:
         """List supported inference models."""
         return self.pathget("models")
 
-    def classify(self, content_type, models=None, url=None, text=None) -> requests.Response:
+    def classify(self, content_type, content_models=None, url=None, text=None) -> requests.Response:
         """Classify a url for the given models."""
         if url:
             return self.pathpost("classify-content", data={
                 "url": url,
-                "models": models })
+                "content_models": content_models })
         elif text:
             return self.pathpost("classify-content", data={
                 "text": text,
-                "models": models })
+                "content_models": content_models })
         else:
             raise InvalidRequest("Either url or text must be provided.")
