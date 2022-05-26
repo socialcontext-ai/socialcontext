@@ -37,22 +37,54 @@ def classify(
     url: str = typer.Option("", help="Web URL to classify."),
     text: str = typer.Option("", help="Text to classify."),
     #models: List[Models()] = typer.Argument(..., help="classification models"),
-    content_model: List[str] = typer.Option(..., help="Content model(s).")
+    content_model: List[str] = typer.Option("", help="Content model(s)."),
+    domain_model: List[str] = typer.Option("", help="Domain model(s).")
     #models: List[str] = typer.Argument(..., help="classification models"),
 ):
     """Classify provided text or text extracted from a provided URL.
 
-    One of either --url or --text must be provided.
+    One of either --url or --text must be provided. --text will be ignored if --url is
+    provided (the content will be extracted from the URL in this case).
 
     To specify multiple content models, pass --content_model multiple times or specify
     a comma separated list of models (E.g. `--content-model climate_action,diversity`)
+
+    To specify multiple domain models, pass --domain_model multiple times or specify
+    a comma separated list of models (E.g. `--domain-model traditional,elite`)
     """
     #models = [m.value for m in models]
     content_models = []
     for m in content_model:
         content_models += m.split(",")
+    domain_models = []
+    for m in domain_model:
+        domain_models += m.split(",")
+    if domain_models and not url:
+        typer.echo(
+            typer.style(
+                "WARNING: Domain model(s) provided without URL. The following "
+                f"--domain-model parameter(s) will be ignores: {domain_models}",
+                fg=typer.colors.YELLOW, bold=True
+            )
+        )
+        domain_models = []
+    if not content_models and not domain_models: 
+        typer.echo(
+            typer.style(
+                "Either content-model or domain-model is required.", fg=typer.colors.RED, bold=True
+            )
+        )
+        raise typer.Exit()
+    if url and text:
+        typer.echo(
+            typer.style(
+                "WARNING: --url and --text both provided. --text will be ignored. "
+                "Content will be extracted from the URL.",
+                fg=typer.colors.YELLOW, bold=True
+            )
+        )
     if url:
-        r = client().classify(content_type, content_models=content_models, url=url)
+        r = client().classify(content_type, content_models=content_models, domain_models=domain_models, url=url)
     elif text:
         r = client().classify(content_type, content_models=content_models, text=text)
     else:
