@@ -198,18 +198,23 @@ class SocialcontextClient:
         content_type: str = "news",
         input_file: str = None,
         output_path: str = None,
-        models: List[str] = None,
+        content_models: List[str] = None,
+        domain_models: List[str] = None,
         batch_size: int = DEFAULT_BATCH_SIZE,
         options: List[str] = None,
         version: str = VERSION,
     ) -> requests.Response:
         """Create a batch processing job."""
-        if models is None:
-            models = []
+        if content_models is None:
+            content_models = []
+        if domain_models is None:
+            domain_models = []
         if options is None:
             options = []
         if input_file is None:
             raise Exception("Input file required.")
+        with open(input_file) as infile:
+            urls = [f.strip() for f in infile.read().split("\n") if f.strip()]
         r = self.pathpost(
             "jobs",
             version,
@@ -219,8 +224,10 @@ class SocialcontextClient:
                 "output_path": output_path,
                 "batch_size": batch_size,
                 "options": options,
-                "models": models,
-            },
+                "content_models": content_models,
+                "domain_models": domain_models,
+                "urls": urls
+            }
         )
         return r
 
@@ -257,6 +264,7 @@ class SocialcontextClient:
         if url:
             return self.pathpost("classify-content", data={
                 "url": url,
+                "text": text,
                 "content_models": content_models,
                 "domain_models": domain_models
             }

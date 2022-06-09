@@ -41,7 +41,8 @@ def create(
         "Numbers out of range will be coerced to the valid minimum or maximum value without error"),
     profile: str = typer.Option(None, help="Read optons from a ~/.socialcontext.json profile"),
     options: Optional[List[str]] = typer.Option(None, help="Options reserved for administrative use."),
-    models: List[Models()] = typer.Argument(None, help="Classification models")
+    content_model: List[str] = typer.Option("", help="Content model(s)."),
+    domain_model: List[str] = typer.Option("", help="Domain model(s).")
 ):
     """Submit a job for batch processing.
 
@@ -54,17 +55,23 @@ def create(
     specified on the command line.
     """
     content_type = content_type.value
-    if models:
-        models = [m.value for m in models]
+    if content_model:
+        content_models = [m.value for m in content_model]
     else:
-        models = []
+        content_models = []
+    if domain_model:
+        domain_models = [m.value for m in domain_model]
+    else:
+        domain_models = []
     options = list(options) or []
     if profile:
         home = expanduser("~")
         cfg = json.load(open(os.path.join(home, '.socialcontext.json')))
         profile_info = cfg.get('profiles', {})[profile]
-        models += profile_info.get('models', []) 
-        models = list(set(models))
+        content_models += profile_info.get('content_models', []) 
+        content_models = list(set(content_models))
+        domain_models += profile_info.get('domain_models', []) 
+        domain_models = list(set(domain_models))
         options += profile_info.get('options', [])
         options = list(set(options))
     if output_path is None:
@@ -74,7 +81,8 @@ def create(
         'output_path': output_path,
         'content_type': content_type,
         'batch_size': batch_size,
-        'models': models,
+        'content_models': content_models,
+        'domain_models': domain_models,
         'options': options
     }
     r = client().create_job(**info)
