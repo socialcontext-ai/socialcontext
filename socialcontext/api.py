@@ -176,6 +176,7 @@ class SocialcontextClient:
     ) -> requests.Response:
         prefix = self.prefix(version)
         url = f"{prefix}/{path}"
+        print("POST:", data)
         return self.post(url, data=data)
 
     def pathput(
@@ -195,14 +196,12 @@ class SocialcontextClient:
     def create_job(
         self,
         *,
-        content_type: str = "news",
-        input_file: str = None,
-        output_path: str = None,
+        job_name:str = "",
         content_models: List[str] = None,
         domain_models: List[str] = None,
-        batch_size: int = DEFAULT_BATCH_SIZE,
         options: List[str] = None,
         version: str = VERSION,
+        urls: List[str]
     ) -> requests.Response:
         """Create a batch processing job."""
         if content_models is None:
@@ -211,18 +210,11 @@ class SocialcontextClient:
             domain_models = []
         if options is None:
             options = []
-        if input_file is None:
-            raise Exception("Input file required.")
-        with open(input_file) as infile:
-            urls = [f.strip() for f in infile.read().split("\n") if f.strip()]
         r = self.pathpost(
             "jobs",
             version,
             data={
-                "content_type": content_type,
-                "input_file": input_file,
-                "output_path": output_path,
-                "batch_size": batch_size,
+                "job_name": job_name,
                 "options": options,
                 "content_models": content_models,
                 "domain_models": domain_models,
@@ -255,14 +247,14 @@ class SocialcontextClient:
 
     def models(self) -> requests.Response:
         """List supported inference models."""
-        return self.pathget("models")
+        return self.pathget("classification/models")
 
     def classify(self, content_type, content_models=None, domain_models=None, url=None, text=None) -> requests.Response:
         """Classify a url for the given models."""
         if not content_models and not domain_models:
             raise InvalidRequest("At least one of content_models or domain_models must be provided.")
         if url:
-            return self.pathpost("classify-content", data={
+            return self.pathpost("classification/classify-content", data={
                 "url": url,
                 "text": text,
                 "content_models": content_models,
@@ -272,7 +264,7 @@ class SocialcontextClient:
         elif text:
             if domain_models:
                 raise InvalidRequest("url must be specified in order to include domain_models.")
-            return self.pathpost("classify-content", data={
+            return self.pathpost("classification/classify-content", data={
                 "text": text,
                 "content_models": content_models })
         else:

@@ -7,7 +7,7 @@ import re
 import sys
 from os.path import expanduser
 from typing import List, Optional
-from .utils import ContentTypes, complete_content_type, output, Models
+from .utils import ContentTypes, output, Models
 from .utils import VERSION, BATCHES_BUCKET, client
 import typer
 
@@ -34,11 +34,8 @@ def info(
 
 @app.command()
 def create(
-    content_type: ContentTypes=typer.Option("news", help="Content type. Currently only news is supported.", autocompletion=complete_content_type),
-    input_file: str = typer.Argument(..., help="File containing URLs. Must be readable by the socialcontext batch system."),
-    output_path: str = typer.Option(None, help="Location to write output files.  Must be writeable by the socialcontext batch system."),
-    batch_size: int = typer.Option(DEFAULT_BATCH_SIZE, help=f"Size of written data batches between {MIN_BATCH_SIZE} and {MAX_BATCH_SIZE}. " \
-        "Numbers out of range will be coerced to the valid minimum or maximum value without error"),
+    name: str = "",
+    input_file: str = typer.Argument(..., help="File containing URLs."),
     profile: str = typer.Option(None, help="Read optons from a ~/.socialcontext.json profile"),
     options: Optional[List[str]] = typer.Option(None, help="Options reserved for administrative use."),
     content_model: List[str] = typer.Option("", help="Content model(s)."),
@@ -54,7 +51,6 @@ def create(
     which contains a list of models that will be merged with any models
     specified on the command line.
     """
-    content_type = content_type.value
     if content_model:
         content_models = [m.value for m in content_model]
     else:
@@ -74,16 +70,16 @@ def create(
         domain_models = list(set(domain_models))
         options += profile_info.get('options', [])
         options = list(set(options))
-    if output_path is None:
-        output_path = '/'.join(input_file.split('/')[:-1]) + '/'
+    if input_file is None:
+        raise Exception("Input file required.")
+    with open(input_file) as infile:
+        urls = [f.strip() for f in infile.read().split("\n") if f.strip()]
     info = {
-        'input_file': input_file,
-        'output_path': output_path,
-        'content_type': content_type,
-        'batch_size': batch_size,
+        'job_name': name,
         'content_models': content_models,
         'domain_models': domain_models,
-        'options': options
+        'options': options,
+        'urls': urls
     }
     r = client().create_job(**info)
     output(r.json())
